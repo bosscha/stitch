@@ -91,16 +91,28 @@ function voronoi(pts, verbose = false)
     xx = Float64[p[1] for p in pts]
     yy = Float64[p[2] for p in pts]
 
+    println(xx)
+
     # 2. Construct the exact type the compiler is demanding
     # Passing raw floats directly: IndexablePoint2D(X, Y, Index)
     v_pts = [VoronoiCells.IndexablePoint2D(xx[i], yy[i], i) for i in 1:ndat]
 
-    # 3. Compute the tessellation
-    tess = voronoicells(v_pts)
+    # Find the min/max of your stars
+    min_x, max_x = minimum(xx), maximum(xx)
+    min_y, max_y = minimum(yy), maximum(yy)
+
+    # Create a rectangle slightly larger than the data extent
+    rect = Rectangle(Point2(min_x - 1, min_y - 1), Point2(max_x + 1, max_y + 1))
+
+    # println(v_pts)
+
+    # 3. Compute the tessellati
+    tess = voronoicells(v_pts, rect)
     
-    # 4. Calculate the area for the density mapping
+   # 4. Calculate the area for the density mapping
     area = voronoiarea(tess)
 
+    println("End voronoi...")
     return (area, area)
 end
 
