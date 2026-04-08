@@ -1,0 +1,48 @@
+## example of build parameter files
+## TOML syntax
+## !! to be updated...
+
+
+## General settings
+[general]
+optimization = "yes"            # optimization or not needed. Acordingly information is provided.
+getvot = "yes"                  # download the votable
+rmvot = "yes"                   # remov or not the votable
+catalog = "catalog.csv"         # catalog filename with the needed fields
+
+wdir = "./test"                     # working directory
+# votdir = "pathtovotdirectory"  # optional
+
+
+## reprocess settings
+[reprocess]
+optsol = "optsol-tot.csv"        # optimization solutions to be applied with the necessary fields
+extrafile = "reprocess.ext"          # setting file for extra
+radius = 2.0
+tol = 0.2
+
+## merge settings for the catalog
+[merge]
+catalog = "ocres-final.sc.csv"                     # catalog filename with the needed fields
+mode =  "duplicate"                    # merging mode: duplicate|merge|simbad)
+toldeg = 0.1                           # tolerance in degrees for position on sky (RA,Dec)
+toldist = 0.5                          # tolerance in parsec for distance
+tolndiff = 0.8                         # if relative number of stars of two candidates is lower then considered two chunks when nearby...
+metric =  "Qn"                          # metric to choose the oc of the two duplicated: Qn(max stars)|Edgm(minimum edgm if available)
+
+
+[random]
+fields = 10
+extrafile = "random.ext"
+radius = 2.5
+tol = 0.2
+edgerecoverylevel = 0
+
+
+[gridding]
+fields = 10
+ra_range = [10,20,0.5]
+dec_range = [-30,-10,0.5]
+extrafile = "grid.ext"
+radius = 2.0
+tol = 0.2
