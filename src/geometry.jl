@@ -87,32 +87,60 @@ end
 function voronoi(pts, verbose = false)
     ndat = length(pts)
     
-    # 1. Extract coordinates and ensure they are Float64
+    if verbose
+        println("Processing $ndat points...")
+    end
+
     xx = Float64[p[1] for p in pts]
     yy = Float64[p[2] for p in pts]
 
-    println(xx)
-
-    # 2. Construct the exact type the compiler is demanding
-    # Passing raw floats directly: IndexablePoint2D(X, Y, Index)
-    v_pts = [VoronoiCells.IndexablePoint2D(xx[i], yy[i], i) for i in 1:ndat]
-
-    # Find the min/max of your stars
     min_x, max_x = minimum(xx), maximum(xx)
     min_y, max_y = minimum(yy), maximum(yy)
-
-    # Create a rectangle slightly larger than the data extent
-    rect = Rectangle(Point2(min_x - 1, min_y - 1), Point2(max_x + 1, max_y + 1))
-
-    # println(v_pts)
-
-    # 3. Compute the tessellati
-    tess = voronoicells(v_pts, rect)
     
-   # 4. Calculate the area for the density mapping
-    area = voronoiarea(tess)
+    range_x = max_x - min_x
+    range_y = max_y - min_y
+    
+    range_x = range_x == 0.0 ? 1.0 : range_x
+    range_y = range_y == 0.0 ? 1.0 : range_y
 
-    println("End voronoi...")
-    return (area, area)
+    scale_x = 0.8 / range_x
+    scale_y = 0.8 / range_y
+    
+    v_pts = VoronoiCells.IndexablePoint2D[]
+    for i in 1:ndat
+        # Keep the microscopic jitter just to be safe against exact duplicates
+        jitter_x = 1e-6 * cos(Float64(i))
+        jitter_y = 1e-6 * sin(Float64(i))
+        
+        # Data maps safely between 1.1 and 1.9
+        nx = 1.1 + (xx[i] - min_x) * scale_x + jitter_x
+        ny = 1.1 + (yy[i] - min_y) * scale_y + jitter_y
+        push!(v_pts, VoronoiCells.IndexablePoint2D(nx, ny, i))
+    end
+
+    # --- THE FIX: ADD 4 GHOST CORNER POINTS ---
+    # These sit outside the data (at 1.01 and 1.99) and act as a forced bounding box.
+    # This guarantees NO stars (like point #21) have infinite boundaries.
+    push!(v_pts, VoronoiCells.IndexablePoint2D(1.01, 1.01, ndat + 1))
+    push!(v_pts, VoronoiCells.IndexablePoint2D(1.01, 1.99, ndat + 2))
+    push!(v_pts, VoronoiCells.IndexablePoint2D(1.99, 1.01, ndat + 3))
+    push!(v_pts, VoronoiCells.IndexablePoint2D(1.99, 1.99, ndat + 4))
+
+    # Run the tessellation 
+    tess = voronoicells(v_pts)
+    
+    # Compute scaled areas (This will no longer crash!)
+    all_scaled_areas = voronoiarea(tess)
+
+    # Throw away the 4 ghost points, keep only your real data (1 to ndat)
+    real_scaled_areas = all_scaled_areas[1:ndat]
+
+    # Reverse the mathematical scaling so DBSCAN gets accurate physical weights
+    actual_areas = real_scaled_areas ./ (scale_x * scale_y)
+
+    if verbose
+        println("End voronoi...")
+    end
+    
+    return (actual_areas, actual_areas)
 end
-

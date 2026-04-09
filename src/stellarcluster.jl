@@ -1119,11 +1119,11 @@ function save_cycle(sc, mcmc, perf, chain,  m::GaiaClustering.meta)
             println("## $filechain created...")
         else
             res= CSV.File(filesc, delim=";") |> DataFrame
-            append!(res,sc[i]) ; CSV.write(filesc,res,delim=';')
+            append!(res,sc[i], cols=:union) ; CSV.write(filesc,res,delim=';')
             res= CSV.File(filemcmc, delim=";") |> DataFrame
-            append!(res,mcmc[i]) ; CSV.write(filemcmc,res,delim=';')
+            append!(res,mcmc[i], cols=:union) ; CSV.write(filemcmc,res,delim=';')
             res= CSV.File(fileperf, delim=";") |> DataFrame
-            append!(res,perf[i]) ; CSV.write(fileperf,res,delim=';')
+            append!(res,perf[i], cols=:union) ; CSV.write(fileperf,res,delim=';')
             # res= CSV.File(filechain, delim=";") |> DataFrame
             CSV.write(filechain,chain[i],delim=';', append=true)
         end
@@ -1159,7 +1159,7 @@ function save_cycle_optim(sc, mcmc, perf, chain,  m::GaiaClustering.meta,optim)
             println("## cycle $i results appended to $filesc ...")
             res= CSV.File(filesc, delim=";") |> DataFrame
 
-            append!(res,sc[i]) ; CSV.write(filesc,res,delim=';')
+            append!(res,sc[i], cols=:union) ; CSV.write(filesc,res,delim=';')
             if optim
                 if !isfile(filemcmc)
                     CSV.write(filemcmc,mcmc[i],delim=';')
@@ -1170,9 +1170,9 @@ function save_cycle_optim(sc, mcmc, perf, chain,  m::GaiaClustering.meta,optim)
                     println("## $filechain created...")
                 else
                     res= CSV.File(filemcmc, delim=";") |> DataFrame
-                    append!(res,mcmc[i]) ; CSV.write(filemcmc,res,delim=';')
+                    append!(res,mcmc[i], cols=:union) ; CSV.write(filemcmc,res,delim=';')
                     res= CSV.File(fileperf, delim=";") |> DataFrame
-                    append!(res,perf[i]) ; CSV.write(fileperf,res,delim=';')
+                    append!(res,perf[i], cols=:union) ; CSV.write(fileperf,res,delim=';')
                     # res= CSV.File(filechain, delim=";") |> DataFrame
                     CSV.write(filechain,chain[i],delim=';', append=true)
                 end
