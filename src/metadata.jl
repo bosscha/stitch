@@ -30,6 +30,12 @@ function set_default_params()::meta
     def.iso             = "no"              ## yes|no to perform isochrone fitting on OC solutions
     def.tail            = "no"              ## yes|no to perform 2nd step extraction for isolated members (radius/velocity/CMD cut)
     def.convg           = "no"              ## yes|no to compute convergence statistics, like Gelman-Rubin
+    def.savedb          = "no"              ## yes|no to save oc to postgresql
+    def.dbhost          = "localhost"
+    def.dbuser          = "postgres"
+    def.dbpass          = ""
+    def.dbname          = "gaiadb"
+    def.dbtable         = "clusters"
 
     # if optim no
     def.w3d             = 7.0               ## w3d weighting
@@ -150,6 +156,12 @@ function set_param!(def, parstr,value)
     if parstr == "iso" def.iso= value end
     if parstr == "tail" def.tail= value end   
     if parstr == "convg" def.convg= value end 
+    if parstr == "savedb" def.savedb= value end
+    if parstr == "dbhost" def.dbhost= value end
+    if parstr == "dbuser" def.dbuser= value end
+    if parstr == "dbpass" def.dbpass= value end
+    if parstr == "dbname" def.dbname= value end
+    if parstr == "dbtable" def.dbtable= value end
     if parstr == "w3d" def.w3d= value end
     if parstr == "wvel" def.wvel= value end
     if parstr == "whrd" def.whrd= value end

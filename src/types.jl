@@ -177,6 +177,12 @@ mutable struct meta
     iso::String
     tail::String
     convg::String
+    savedb::String
+    dbhost::String
+    dbuser::String
+    dbpass::String
+    dbname::String
+    dbtable::String
     w3d::Float64
     wvel::Float64
     whrd::Float64

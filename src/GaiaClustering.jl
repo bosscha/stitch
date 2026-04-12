@@ -17,7 +17,7 @@ using Glob, GZip, FileIO, CSVFiles, ProgressMeter
 import Interpolations
 using Images, Base
 
-using StatsBase, CSV, Distances, MultivariateStats, FHist
+using StatsBase, CSV, Distances, MultivariateStats, FHist, LibPQ
 
 using PyCall, PyPlot
 

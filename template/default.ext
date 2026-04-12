@@ -20,6 +20,13 @@ zpt             = "yes"          ## apply Zero point offset correction for paral
 iso             = "yes"          ## isochrone fitting to estimate ag, metallicity and add mass in solar mass
 tail            = "yes"          ## perform 2nd step for extraction in order to get isolated members (tails)
 
+savedb          = "no"           ## yes|no to save cluster stars to PostgreSQL
+dbhost          = "localhost"    ## database host
+dbuser          = "postgres"     ## database user
+dbpass          = "tallis"       ## database password
+dbname          = "gaiadb"       ## database name
+dbtable         = "clusters"     ## database table
+
 #
 # if optim no set the dbscan/weighting values
 w3d             = 6.737               ## w3d weighting

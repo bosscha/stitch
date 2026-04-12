@@ -540,6 +540,7 @@ function export_df(votname, ocdir, df , dfcart, labels , labelmax, pc, m::GaiaCl
     end
 
     oc[!,:type] = convert.(Int8,oc[!,:type])
+    oc[!,:cluster_id] .= votname
 
     name= split(votname,".")
     infix= ""
@@ -551,12 +552,50 @@ function export_df(votname, ocdir, df , dfcart, labels , labelmax, pc, m::GaiaCl
     infix *= "oc.csv"
     filename= @sprintf("%s/%s",ocdir, infix)
     if save
-        if isdir(ocdir)
-            CSV.write(filename,oc,delim=';')
-            @printf("### %s created  in %s \n",filename, ocdir)
+        if m.savedb == "yes"
+            println("### Saving cluster members into PostgreSQL table $(m.dbtable)...")
+            
+            # Construct connection string
+            # Handle empty password string properly for Postgres
+            pwd_arg = (m.dbpass != "") ? "password=$(m.dbpass)" : ""
+            conn_str = "host=$(m.dbhost) user=$(m.dbuser) dbname=$(m.dbname) $pwd_arg"
+            
+            conn = LibPQ.Connection(conn_str)
+            try
+                execute(conn, """
+                CREATE TABLE IF NOT EXISTS $(m.dbtable) (
+                    sourceid BIGINT, ra FLOAT, dec FLOAT, l FLOAT, b FLOAT, parallax FLOAT, parallax_err FLOAT, distance FLOAT,
+                    pmra FLOAT, pmdec FLOAT, X FLOAT, Y FLOAT, Z FLOAT, vl FLOAT, vb FLOAT, vrad FLOAT, Xg FLOAT, Yg FLOAT, Zg FLOAT,
+                    gbar FLOAT, rp FLOAT, bp FLOAT, ag FLOAT, a0 FLOAT, ebmr FLOAT, mh FLOAT, type SMALLINT, cluster_id VARCHAR(255)
+                )
+                """)
+                
+                # Make sure the column exists incase the table was already created
+                execute(conn, "ALTER TABLE $(m.dbtable) ADD COLUMN IF NOT EXISTS cluster_id VARCHAR(255);")
+                
+                if m.pca == "yes" && s[1] == spc[2]
+                    for i in 1:spc[1]
+                        execute(conn, "ALTER TABLE $(m.dbtable) ADD COLUMN IF NOT EXISTS PC$i FLOAT;")
+                    end
+                end
+                
+                ncol = size(oc)[2]
+                val_placeholders = join(["\$$i" for i in 1:ncol], ", ")
+                LibPQ.load!(oc, conn, "INSERT INTO $(m.dbtable) VALUES ($val_placeholders);")
+                @printf("### Database insertion completed for %d rows in table %s \n", size(oc)[1], m.dbtable)
+            catch e
+                println("### DB ERROR: ", e)
+            finally
+                close(conn)
+            end
         else
-            print("\n### Error, result (oc) directory $ocdir not found... \n")
-            exit()
+            if isdir(ocdir)
+                CSV.write(filename,oc,delim=';')
+                @printf("### %s created  in %s \n",filename, ocdir)
+            else
+                print("\n### Error, result (oc) directory $ocdir not found... \n")
+                exit()
+            end
         end
     end
 
