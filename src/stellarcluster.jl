@@ -885,6 +885,9 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
                 insertcols!(scdf, 30, :mnei => min_nei)
                 insertcols!(scdf, 30, :mcl => min_cl)
                 insertcols!(scdf, 30, :eps => eps)
+                
+                ntail = count(==(2), oc.type)
+                insertcols!(scdf, 30, :ntail => ntail)
 
                 ## Xg, Yg, Zg median Galactic position
                 dg = df.data[3,labels[labelmax]]
