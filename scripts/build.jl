@@ -249,6 +249,10 @@ function gridding(meta)
     mextra.wdir = "./"
     mextra.plotdir = "./plotSelect"
     mextra.ocdir = "./oc"
+    
+    # ensure directories exist so we don't get PyPlot write errors!
+    mkpath(mextra.plotdir)
+    mkpath(mextra.ocdir)
 
     println(mgrid)
     println(mgene)

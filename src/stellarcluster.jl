@@ -817,11 +817,12 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
                 ## Principal components
                 pc, pcres= compute_PC(df, dfcart, labels, labelmax)
 
+                cluster_uuid = string(uuid4())
                 if m.pca == "no"
-                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m)
+                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m, cluster_id=cluster_uuid)
                 elseif m.pca == "yes"
                     println("## PCA components added to the oc")
-                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m)
+                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m, cluster_id=cluster_uuid)
                 end
                 println("## label $labelmax written as an oc solution...")
 
@@ -872,9 +873,10 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
                 insertcols!(scdf, 1, :votname => votname)
                 insertcols!(scdf, 2, :uuid => string(m.uuid))
                 insertcols!(scdf, 3, :cycle => cycle)
-                insertcols!(scdf, 4, :pc3 => pcres[3])
-                insertcols!(scdf, 4, :pc2 => pcres[2])
-                insertcols!(scdf, 4, :pc1 => pcres[1])
+                insertcols!(scdf, 4, :cluster_id => cluster_uuid)
+                insertcols!(scdf, 5, :pc3 => pcres[3])
+                insertcols!(scdf, 5, :pc2 => pcres[2])
+                insertcols!(scdf, 5, :pc1 => pcres[1])
 
                 ## add solution used for DBSCAN and weighting
                 insertcols!(scdf, 30, :whrd => whrd)
@@ -1108,6 +1110,9 @@ function save_cycle(sc, mcmc, perf, chain,  m::GaiaClustering.meta)
     ncycle= length(sc)
 
     for i in 1:ncycle
+        if m.savedb == "yes"
+            export_sc_db(sc[i], m)
+        end
         if !isfile(filesc)
             CSV.write(filesc,sc[i],delim=';')
             println("## $filesc created...")
@@ -1144,6 +1149,9 @@ function save_cycle_optim(sc, mcmc, perf, chain,  m::GaiaClustering.meta,optim)
     ncycle= length(sc)
 
     for i in 1:ncycle
+        if m.savedb == "yes"
+            export_sc_db(sc[i], m)
+        end
         if !isfile(filesc)
             CSV.write(filesc,sc[i],delim=';')
             println("## $filesc created...")

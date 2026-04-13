@@ -464,7 +464,7 @@ end
 ####
 # Create the DataFrame to save the cluster...
 ##
-function export_df(votname, ocdir, df , dfcart, labels , labelmax, pc, m::GaiaClustering.meta ; save=true)
+function export_df(votname, ocdir, df , dfcart, labels , labelmax, pc, m::GaiaClustering.meta ; save=true, cluster_id="")
     ra= df.raw[1, labels[labelmax]]
     dec= df.raw[2,labels[labelmax]]
     l= df.data[1, labels[labelmax]]
@@ -540,7 +540,11 @@ function export_df(votname, ocdir, df , dfcart, labels , labelmax, pc, m::GaiaCl
     end
 
     oc[!,:type] = convert.(Int8,oc[!,:type])
-    oc[!,:cluster_id] .= votname
+    if cluster_id != ""
+        oc[!, :cluster_id] .= cluster_id
+    else
+        oc[!, :cluster_id] .= votname
+    end
 
     name= split(votname,".")
     infix= ""
@@ -581,7 +585,8 @@ function export_df(votname, ocdir, df , dfcart, labels , labelmax, pc, m::GaiaCl
                 
                 ncol = size(oc)[2]
                 val_placeholders = join(["\$$i" for i in 1:ncol], ", ")
-                LibPQ.load!(oc, conn, "INSERT INTO $(m.dbtable) VALUES ($val_placeholders);")
+                col_names = join(names(oc), ", ")
+                LibPQ.load!(oc, conn, "INSERT INTO $(m.dbtable) ($col_names) VALUES ($val_placeholders);")
                 @printf("### Database insertion completed for %d rows in table %s \n", size(oc)[1], m.dbtable)
             catch e
                 println("### DB ERROR: ", e)
@@ -600,6 +605,53 @@ function export_df(votname, ocdir, df , dfcart, labels , labelmax, pc, m::GaiaCl
     end
 
     return(oc)
+end
+
+#######################################
+## export cluster metadata to PostgreSQL
+#######################################
+function export_sc_db(sc::DataFrame, m::GaiaClustering.meta)
+    table_name = "$(m.dbtable)_metadata"
+    println("### Saving cluster metadata into PostgreSQL table $table_name...")
+    
+    pwd_arg = (m.dbpass != "") ? "password=$(m.dbpass)" : ""
+    conn_str = "host=$(m.dbhost) user=$(m.dbuser) dbname=$(m.dbname) $pwd_arg"
+    
+    conn = LibPQ.Connection(conn_str)
+    try
+        col_defs = String[]
+        for col in propertynames(sc)
+            T = eltype(sc[!, col])
+            type_str = ""
+            if T <: Integer
+                type_str = "BIGINT"
+            elseif T <: AbstractFloat
+                type_str = "FLOAT"
+            else
+                type_str = "VARCHAR(255)"
+            end
+            push!(col_defs, "$col $type_str")
+        end
+        
+        create_sql = "CREATE TABLE IF NOT EXISTS $table_name (" * join(col_defs, ", ") * ");"
+        execute(conn, create_sql)
+        
+        for coldef in col_defs
+            execute(conn, "ALTER TABLE $table_name ADD COLUMN IF NOT EXISTS $coldef;")
+        end
+        
+        ncol = size(sc)[2]
+        val_placeholders = join(["\$$i" for i in 1:ncol], ", ")
+        col_names = join(names(sc), ", ")
+        
+        LibPQ.load!(sc, conn, "INSERT INTO $table_name ($col_names) VALUES ($val_placeholders);")
+        
+        println("### Cluster metadata insertion completed for table $table_name")
+    catch e
+        println("### DB ERROR in export_sc_db: ", e)
+    finally
+        close(conn)
+    end
 end
 #######################################
 ## a built-in version of getdata

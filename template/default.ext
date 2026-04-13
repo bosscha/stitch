@@ -21,7 +21,7 @@ iso             = "yes"          ## isochrone fitting to estimate ag, metallicit
 tail            = "yes"          ## perform 2nd step for extraction in order to get isolated members (tails)
 
 savedb          = "no"           ## yes|no to save cluster stars to PostgreSQL
-dbhost          = "localhost"    ## database host
+dbhost          = "127.0.0.1"    ## database host
 dbuser          = "postgres"     ## database user
 dbpass          = "tallis"       ## database password
 dbname          = "gaiadb"       ## database name
