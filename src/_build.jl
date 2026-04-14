@@ -40,13 +40,13 @@ function get_gaia_data(radius, tol, ra, dec, name, rect, table= "gaiadr3.gaia_so
 
     if rect
         adql= @sprintf("SELECT * FROM %s WHERE %s.ra BETWEEN %f AND %f AND
-%s.dec BETWEEN %f AND %f AND abs(pmra_error/pmra)<  %3.3f AND abs(pmdec_error/pmdec)< %3.3f
-    AND abs(parallax_error/parallax)< %3.3f;", table, table, ra-radius, ra+radius, table,dec-radius,
+%s.dec BETWEEN %f AND %f AND pmra_error < %3.3f * abs(pmra) AND pmdec_error < %3.3f * abs(pmdec)
+    AND parallax_error < %3.3f * abs(parallax);", table, table, ra-radius, ra+radius, table,dec-radius,
     dec+radius,tol, tol, tol )
     else
         adql= @sprintf("SELECT * FROM %s WHERE CONTAINS(POINT('ICRS',%s.ra, %s.dec),
-    CIRCLE('ICRS',%f, %f, %f)) = 1  AND abs(pmra_error/pmra)<  %3.3f AND abs(pmdec_error/pmdec)< %3.3f
-    AND abs(parallax_error/parallax)< %3.3f;", table, table, table, ra, dec, radius, tol, tol, tol )
+    CIRCLE('ICRS',%f, %f, %f)) = 1  AND pmra_error < %3.3f * abs(pmra) AND pmdec_error < %3.3f * abs(pmdec)
+    AND parallax_error < %3.3f * abs(parallax);", table, table, table, ra, dec, radius, tol, tol, tol )
     end
 
     println("## Downloading data...")
@@ -66,13 +66,13 @@ function get_gaia_data_many(gaia, radius, tol, ra, dec, name, rect, table= "gaia
 
     if rect
         adql= @sprintf("SELECT * FROM %s WHERE %s.ra BETWEEN %f AND %f AND
-%s.dec BETWEEN %f AND %f AND abs(pmra_error/pmra)<  %3.3f AND abs(pmdec_error/pmdec)< %3.3f
-    AND abs(parallax_error/parallax)< %3.3f;", table, table, ra-radius, ra+radius, table,dec-radius,
+%s.dec BETWEEN %f AND %f AND pmra_error < %3.3f * abs(pmra) AND pmdec_error < %3.3f * abs(pmdec)
+    AND parallax_error < %3.3f * abs(parallax);", table, table, ra-radius, ra+radius, table,dec-radius,
     dec+radius,tol, tol, tol )
     else
         adql= @sprintf("SELECT * FROM %s WHERE CONTAINS(POINT('ICRS',%s.ra, %s.dec),
-    CIRCLE('ICRS',%f, %f, %f)) = 1  AND abs(pmra_error/pmra)<  %3.3f AND abs(pmdec_error/pmdec)< %3.3f
-    AND abs(parallax_error/parallax)< %3.3f;", table, table, table, ra, dec, radius, tol, tol, tol )
+    CIRCLE('ICRS',%f, %f, %f)) = 1  AND pmra_error < %3.3f * abs(pmra) AND pmdec_error < %3.3f * abs(pmdec)
+    AND parallax_error < %3.3f * abs(parallax);", table, table, table, ra, dec, radius, tol, tol, tol )
     end
 
     println("## Downloading data...")
