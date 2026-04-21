@@ -61,3 +61,4 @@ venv.bak/
 .mypy_cache/
 .pydevproject
 .vscode/
+*.csv.gz
