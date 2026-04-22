@@ -31,6 +31,37 @@ function extra(m::GaiaClustering.meta, optim)
     df=0 ; dfcart= 0 ; dfcartnorm= 0
     GC.gc()
 end
+
+function extra_db(m::GaiaClustering.meta, optim, df, dfcart, dfcartnorm)
+    tstart= now()
+    rng = MersenneTwister()
+    uuid=uuid4(rng)
+    m.uuid= uuid
+
+    println("###########################")
+    println("## Starting extra_db with $(m.votname)")
+    println("## Starting at $tstart")
+    println("## Id $uuid")
+
+    cycle, flag= cycle_extraction_optim(df, dfcart, m, optim)
+
+    tend= now()
+    println("## Ending at $tend")
+    println("## number of cycle: $cycle , flag:$flag ")
+    println("##########################")
+    println("##")
+
+    duration= Dates.value(tend-tstart) / (1000*3600)
+    durationstr= @sprintf("%3.3f", duration)
+    @printf("## %s \n",specialstr("Duration: $durationstr hours","YELLOW"))
+    @printf("## %s \n",specialstr("Votable done: $(m.votname)","YELLOW"))
+    println("##\n##")
+
+    debug_red("Cleaning ...")
+    df=0 ; dfcart= 0 ; dfcartnorm= 0
+    GC.gc()
+end
+
 ########
 function get_gaia_data(radius, tol, ra, dec, name, rect, table= "gaiadr3.gaia_source")
 

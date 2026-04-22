@@ -1,0 +1,15 @@
+## full-sky build parameter files
+## TOML syntax
+
+## General settings
+[general]
+wdir = "./run_fullsky"          # working directory where progress and outputs will be stored
+
+# These are unused by the fullSky loop but required by the parser
+optimization = "no"             
+getvot = "no"                   
+rmvot = "no"                    
+catalog = "catalog.csv"         
+
+[fullsky]
+extrafile = "fullsky.ext"
