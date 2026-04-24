@@ -191,6 +191,12 @@ mutable struct meta
     mnei::Int
     maxdist::Float64
     mindist::Float64
+    minvra::Float64
+    maxvra::Float64
+    minvdec::Float64
+    maxvdec::Float64
+    ming::Float64
+    maxg::Float64
 
     minQc::Float64
     minQn::Int

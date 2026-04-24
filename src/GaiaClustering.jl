@@ -36,9 +36,9 @@ export modelCauchy, Grav, abcfull, mcfull, modelfull, meta
 
 ## GAIA function to deal with data
 include("data.jl")
-export read_votable, filter_data, add_cartesian, normalization_PerBlock, copy1,
+export read_votable, filter_data, filter_pg_data, add_cartesian, normalization_PerBlock, copy1,
   subsetDf, galXYZ, PM_equatorial2galactic, galUVW, export_df, equatorial2galactic,
-  angle4sphere, get_data
+  angle4sphere, get_data, get_data_pg
 
 ## Geometry functions (Voronoi, correlation2d)
 include("geometry.jl")
@@ -96,7 +96,7 @@ export mist_df, read_isochrones, update_mag, weight_cmd, dist_cmd2iso, fit_isoch
 
 ## functions to be used in the build script mainly
 include("_build.jl")
-export extra, get_gaia_data, get_gaia_data_many, get_random_field, galactic2equatorial, rm_duplicated, get_chunks
+export extra, extra_db, get_gaia_data, get_gaia_data_many, get_random_field, galactic2equatorial, rm_duplicated, get_chunks
 
 ## deprecated functions ## may be used still...
 include("deprecated.jl")

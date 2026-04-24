@@ -12,4 +12,4 @@ rmvot = "no"
 catalog = "catalog.csv"         
 
 [fullsky]
-extrafile = "fullsky.ext"
+extrafile = "template/fullsky.ext"

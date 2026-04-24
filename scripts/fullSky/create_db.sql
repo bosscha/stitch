@@ -67,3 +67,6 @@ CREATE TABLE IF NOT EXISTS clusters (
     type SMALLINT, 
     cluster_id VARCHAR(255)
 );
+
+-- Index for full-sky HEALPix level 5 processing queries
+CREATE INDEX IF NOT EXISTS idx_healpix_level5 ON gaia_source ((source_id >> 49));

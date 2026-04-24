@@ -46,6 +46,12 @@ function set_default_params()::meta
     def.mnei            = 7                 ## min_neighbor DBSCAN
     def.maxdist         = 1e9               ## maximum distance to filter stars in pc
     def.mindist         = 0.0               ## minimum distance to filter stars in pc
+    def.minvra          = -250.0            ## min vra km/s
+    def.maxvra          = 250.0             ## max vra km/s
+    def.minvdec         = -250.0            ## min vdec km/s
+    def.maxvdec         = 250.0             ## max vdec km/s
+    def.ming            = 0.0               ## min phot_g_mean_mag
+    def.maxg            = 22.0              ## max phot_g_mean_mag
 
     ## parameters for 2nd step extraction ("tail")
     def.maxRadTail      = 250.0             ## cut in radius (pc) from the center of the oc candidate (step 1)
@@ -170,6 +176,12 @@ function set_param!(def, parstr,value)
     if parstr == "mnei" def.mnei= value end
     if parstr == "maxdist" def.maxdist= value end
     if parstr == "mindist" def.mindist= value end
+    if parstr == "minvra" def.minvra= value end
+    if parstr == "maxvra" def.maxvra= value end
+    if parstr == "minvdec" def.minvdec= value end
+    if parstr == "maxvdec" def.maxvdec= value end
+    if parstr == "ming" def.ming= value end
+    if parstr == "maxg" def.maxg= value end
 
     if parstr == "maxRadTail"     def.maxRadTail= value end
     if parstr == "maxVelTail"     def.maxVelTail= value end

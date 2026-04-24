@@ -45,8 +45,13 @@ function fullSky(meta)
     mgene = meta["general"]
     mextra = read_params(mfull["extrafile"], false)
 
-    checkdir(joinpath(mgene["wdir"], mextra.ocdir), joinpath(mgene["wdir"], mextra.plotdir))
-    cd(mgene["wdir"])
+    # ensure directories exist
+    wdir = mgene["wdir"]
+    mkpath(wdir)
+    mkpath(joinpath(wdir, mextra.ocdir))
+    mkpath(joinpath(wdir, mextra.plotdir))
+    
+    cd(wdir)
 
     progressfile = "_done_hp.csv"
 
