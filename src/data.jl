@@ -715,6 +715,9 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
     ebmr= zeros(ngaia)
     mh= zeros(ngaia)
 
+    has_pmra_error = hasproperty(df_pg, :pmra_error)
+    has_pmdec_error = hasproperty(df_pg, :pmdec_error)
+
     for i in 1:ngaia
         source_id[i]= df_pg.source_id[i]
         lgal[i]     = ismissing(df_pg.l[i]) ? 0.0 : df_pg.l[i]
@@ -737,8 +740,8 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
         radialvel[i]    = ismissing(df_pg.radial_velocity[i]) ? 0.0 : df_pg.radial_velocity[i]
 
         parallax_error[i]  = ismissing(df_pg.parallax_error[i]) ? 0.0 : df_pg.parallax_error[i]
-        pmra_error[i]  = ismissing(df_pg.pmra_error[i]) ? 0.0 : df_pg.pmra_error[i]
-        pmdec_error[i] = ismissing(df_pg.pmdec_error[i]) ? 0.0 : df_pg.pmdec_error[i]
+        pmra_error[i]  = has_pmra_error && !ismissing(df_pg.pmra_error[i]) ? df_pg.pmra_error[i] : 0.0
+        pmdec_error[i] = has_pmdec_error && !ismissing(df_pg.pmdec_error[i]) ? df_pg.pmdec_error[i] : 0.0
 
         g[i]        = ismissing(df_pg.phot_g_mean_mag[i]) ? 0.0 : df_pg.phot_g_mean_mag[i]
         rp[i]       = ismissing(df_pg.phot_rp_mean_mag[i]) ? 0.0 : df_pg.phot_rp_mean_mag[i]
