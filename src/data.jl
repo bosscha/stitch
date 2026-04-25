@@ -732,15 +732,15 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
     has_pmdec_error = hasproperty(df_pg, :pmdec_error)
 
     for i in 1:ngaia
-        source_id[i] = df_pg.source_id[i]
+        source_id[i] = ismissing(df_pg.source_id[i]) ? 0 : df_pg.source_id[i]
         lgal[i] = ismissing(df_pg.l[i]) ? 0.0 : df_pg.l[i]
         bgal[i] = ismissing(df_pg.b[i]) ? 0.0 : df_pg.b[i]
-        ra[i] = df_pg.ra[i]
-        dec[i] = df_pg.dec[i]
-        parallax[i] = df_pg.parallax[i]
-        distance[i] = 1000. / parallax[i]
-        pmra[i] = df_pg.pmra[i]
-        pmdec[i] = df_pg.pmdec[i]
+        ra[i] = ismissing(df_pg.ra[i]) ? 0.0 : df_pg.ra[i]
+        dec[i] = ismissing(df_pg.dec[i]) ? 0.0 : df_pg.dec[i]
+        parallax[i] = ismissing(df_pg.parallax[i]) ? 0.0 : df_pg.parallax[i]
+        distance[i] = parallax[i] == 0.0 ? Inf : 1000. / parallax[i]
+        pmra[i] = ismissing(df_pg.pmra[i]) ? 0.0 : df_pg.pmra[i]
+        pmdec[i] = ismissing(df_pg.pmdec[i]) ? 0.0 : df_pg.pmdec[i]
         vra[i] = 4.74e-3 * pmra[i] * distance[i]
         vdec[i] = 4.74e-3 * pmdec[i] * distance[i]
 
@@ -773,10 +773,10 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
 
     if zpt
         try
-            # zpt_module= pyimport("zero_point.zpt")
-            # zpt_module.load_tables()
-            # zcorr= zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, astrometric_params_solved)
-            zcorr = zeros(ngaia) ## temporary fix
+            zpt_module = pyimport("zero_point.zpt")
+            zpt_module.load_tables()
+            zcorr = zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, astrometric_params_solved)
+
 
             parallax = parallax .- zcorr
             distance = 1000. ./ parallax
