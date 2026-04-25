@@ -97,15 +97,18 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
 
     for i in 1:ngaia
 
-        source_id[i] = convert(Int64, get(gaia, i - 1).source_id)
-        lgal[i] = convert(Float64, get(gaia, i - 1).l)
-        bgal[i] = convert(Float64, get(gaia, i - 1).b)
-        ra[i] = convert(Float64, get(gaia, i - 1).ra)
-        dec[i] = convert(Float64, get(gaia, i - 1).dec)
-        distance[i] = 1000. / convert(Float64, get(gaia, i - 1).parallax)
-        parallax[i] = convert(Float64, get(gaia, i - 1).parallax)
-        pmra[i] = convert(Float64, get(gaia, i - 1).pmra)
-        pmdec[i] = convert(Float64, get(gaia, i - 1).pmdec)
+        source_id[i] = safe_pyconvert(Int64, get(gaia, i - 1).source_id, 0)
+        lgal[i] = safe_pyconvert(Float64, get(gaia, i - 1).l, 0.0)
+        bgal[i] = safe_pyconvert(Float64, get(gaia, i - 1).b, 0.0)
+        ra[i] = safe_pyconvert(Float64, get(gaia, i - 1).ra, 0.0)
+        dec[i] = safe_pyconvert(Float64, get(gaia, i - 1).dec, 0.0)
+        
+        parallax_val = safe_pyconvert(Float64, get(gaia, i - 1).parallax, 0.0)
+        parallax[i] = parallax_val
+        distance[i] = parallax_val == 0.0 ? Inf : 1000. / parallax_val
+        
+        pmra[i] = safe_pyconvert(Float64, get(gaia, i - 1).pmra, 0.0)
+        pmdec[i] = safe_pyconvert(Float64, get(gaia, i - 1).pmdec, 0.0)
         vra[i] = 4.74e-3 * pmra[i] * distance[i]
         vdec[i] = 4.74e-3 * pmdec[i] * distance[i]
 
@@ -117,28 +120,28 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
         vb[i] = 4.74e-3 * pmb[i] * distance[i]
 
         #fix for EDR3
-        radialvel[i] = convert(Float64, get(gaia, i - 1).radial_velocity)
+        radialvel[i] = safe_pyconvert(Float64, get(gaia, i - 1).radial_velocity, 0.0)
 
         ### errors.
-        parallax_error[i] = convert(Float64, get(gaia, i - 1).parallax_error)
-        pmra_error[i] = convert(Float64, get(gaia, i - 1).pmra_error)
-        pmdec_error[i] = convert(Float64, get(gaia, i - 1).pmdec_error)
+        parallax_error[i] = safe_pyconvert(Float64, get(gaia, i - 1).parallax_error, 0.0)
+        pmra_error[i] = safe_pyconvert(Float64, get(gaia, i - 1).pmra_error, 0.0)
+        pmdec_error[i] = safe_pyconvert(Float64, get(gaia, i - 1).pmdec_error, 0.0)
 
-        g[i] = convert(Float64, get(gaia, i - 1).phot_g_mean_mag)
-        rp[i] = convert(Float64, get(gaia, i - 1).phot_rp_mean_mag)
-        bp[i] = convert(Float64, get(gaia, i - 1).phot_bp_mean_mag)
+        g[i] = safe_pyconvert(Float64, get(gaia, i - 1).phot_g_mean_mag, 0.0)
+        rp[i] = safe_pyconvert(Float64, get(gaia, i - 1).phot_rp_mean_mag, 0.0)
+        bp[i] = safe_pyconvert(Float64, get(gaia, i - 1).phot_bp_mean_mag, 0.0)
 
         # extinction,  reddening, iron abundance
-        ag[i] = convert(Float64, get(gaia, i - 1).ag_gspphot)
-        a0[i] = convert(Float64, get(gaia, i - 1).azero_gspphot)
-        ebmr[i] = convert(Float64, get(gaia, i - 1).ebpminrp_gspphot)
-        mh[i] = convert(Float64, get(gaia, i - 1).mh_gspphot)
+        ag[i] = safe_pyconvert(Float64, get(gaia, i - 1).ag_gspphot, NaN)
+        a0[i] = safe_pyconvert(Float64, get(gaia, i - 1).azero_gspphot, NaN)
+        ebmr[i] = safe_pyconvert(Float64, get(gaia, i - 1).ebpminrp_gspphot, NaN)
+        mh[i] = safe_pyconvert(Float64, get(gaia, i - 1).mh_gspphot, NaN)
 
         ## for ZPT correction
-        nu_eff_used_in_astrometry[i] = convert(Float64, get(gaia, i - 1).nu_eff_used_in_astrometry)
-        pseudocolour[i] = convert(Float64, get(gaia, i - 1).pseudocolour)
-        ecl_lat[i] = convert(Float64, get(gaia, i - 1).ecl_lat)
-        astrometric_params_solved[i] = convert(Float64, get(gaia, i - 1).astrometric_params_solved)
+        nu_eff_used_in_astrometry[i] = safe_pyconvert(Float64, get(gaia, i - 1).nu_eff_used_in_astrometry, 0.0)
+        pseudocolour[i] = safe_pyconvert(Float64, get(gaia, i - 1).pseudocolour, 0.0)
+        ecl_lat[i] = safe_pyconvert(Float64, get(gaia, i - 1).ecl_lat, 0.0)
+        astrometric_params_solved[i] = safe_pyconvert(Float64, get(gaia, i - 1).astrometric_params_solved, 0.0)
     end
 
     if zpt

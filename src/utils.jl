@@ -91,3 +91,8 @@ function checkdir(dir1 , dir2, stopped=true)
         end
     end
 end
+
+## safe conversion for PyCall nothing values
+function safe_pyconvert(T, x, default)
+    return x === nothing ? default : convert(T, x)
+end
