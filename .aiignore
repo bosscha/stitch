@@ -1,0 +1,39 @@
+# AI Ignore File
+# Prevents the AI agent from processing large, redundant, or irrelevant data files.
+
+# Version Control
+.git/
+
+# Data and Outputs (Large files)
+data/
+e2e/
+run_fullsky/
+*.vot
+*.csv
+*.merge
+*.fits
+
+# Media and Visualizations
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.svg
+
+# Legacy/Redundant Code
+deprecated/
+
+# Python/Julia Artifacts
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+Manifest.toml
+Project.toml
+# Note: Keep Project.toml/Manifest.toml if you want the agent to see dependencies, 
+# but usually Manifest.toml is very large and noisy.
+
+# Environment
+.env
+.venv/
+env/
+venv/
