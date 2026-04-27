@@ -159,8 +159,8 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
 
             debug_red("Cleaning...")
             GC.gc()
-        catch
-            println("## Issues with the ZPT correction...")
+        catch e
+            println("## Issues with the ZPT correction: ", e)
         end
     end
 
@@ -789,8 +789,8 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
             vb = 4.74e-3 .* pmb .* distance
 
             GC.gc()
-        catch
-            println("## Issues with the ZPT correction...")
+        catch e
+            println("## Issues with the ZPT correction: ", e)
         end
     end
 
