@@ -3,7 +3,7 @@
 ## The open cluster candidates are saved in the postgresql DB only if they are in the central pixel. All 8 neighbours 
 ## are processed with the central one for edge cases, HEALPix level 5 is used for all-sky
 
-using DataFrames, CSV, TOML, ArgParse
+using DataFrames, CSV, TOML, ArgParse, LibPQ
 using Dates, Printf
 
 using PyCall
