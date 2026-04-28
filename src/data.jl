@@ -146,9 +146,19 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
 
     if zpt
         try
-            zpt = pyimport("zero_point.zpt")
-            zpt.load_tables()
-            zcorr = zpt.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, astrometric_params_solved)
+            zpt_module = pyimport("zero_point.zpt")
+            zpt_module.load_tables()
+            
+            # Masking for valid astrometric solutions (31 or 95)
+            # as the library raises ValueError otherwise.
+            mask_zpt = [ (p == 31 || p == 95) for p in astrometric_params_solved ]
+            params_zpt = copy(astrometric_params_solved)
+            for k in 1:length(params_zpt)
+                if !mask_zpt[k] params_zpt[k] = 31 end
+            end
+
+            zcorr_raw = zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, params_zpt)
+            zcorr = zcorr_raw .* mask_zpt
 
             parallax = parallax .- zcorr
             distance = 1000. ./ parallax
@@ -249,8 +259,6 @@ function equatorial2galactic(α, δ)
     x = cosd(δ) * cosd(δG) * sind(α - αG)
     y = sind(δ) - sind(b) * sind(δG)
     l = atand(y, x) + lascend
-    println(x)
-    println(y)
 
     if x >= 0 && y <= 0
         l += 360.0
@@ -778,7 +786,16 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
         try
             zpt_module = pyimport("zero_point.zpt")
             zpt_module.load_tables()
-            zcorr = zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, astrometric_params_solved)
+            
+            # Masking for valid astrometric solutions (31 or 95)
+            mask_zpt = [ (p == 31 || p == 95) for p in astrometric_params_solved ]
+            params_zpt = copy(astrometric_params_solved)
+            for k in 1:length(params_zpt)
+                if !mask_zpt[k] params_zpt[k] = 31 end
+            end
+
+            zcorr_raw = zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, params_zpt)
+            zcorr = zcorr_raw .* mask_zpt
 
 
             parallax = parallax .- zcorr

@@ -307,29 +307,29 @@ function find_cluster_label2(labels, df::GaiaClustering.Df, dfcart::GaiaClusteri
 
         if m.labels == "Qc"
             println("## Selecting best cluster based on Qc")
-            println("## Qc: $qc")
-            println("## Qn: $nlab")
+            # println("## Qc: $qc")
+            # println("## Qn: $nlab")
             bestlabel= findmax(qc)[2]
         elseif m.labels == "Qn"
             println("## Selecting best cluster based on Qn")
-            println("## Qc: $qc")
-            println("## Qn: $nlab")
+            # println("## Qc: $qc")
+            # println("## Qn: $nlab")
             bestlabel= findmax(nlab)[2]
         elseif m.labels == "QcQn"
             println("## Selecting best cluster based on Qc and Qn")
-            println("## Qc: $qc")
-            println("## Qn: $nlab")
+            # println("## Qc: $qc")
+            # println("## Qn: $nlab")
             qcqn= get_qcqn.(qc, nlab, (m , ))
-            println("## QcQn: $qcqn")
+            # println("## QcQn: $qcqn")
             bestlabel= findmax(qcqn)[2]
         elseif m.labels == "QcQnhigh"
             println("## Selecting best cluster based on Qc and maxQn. Make sure that is what you want...")
-            println("## Qc: $qc")
-            println("## Qn: $nlab")
+            # println("## Qc: $qc")
+            # println("## Qn: $nlab")
             mtemp= m
             mtemp.minQn= 30
             qcqn= get_qcqn.(qc, nlab, (mtemp , ))
-            println("## QcQn: $qcqn")
+            # println("## QcQn: $qcqn")
             bestlabel= findmax(qcqn)[2]
         else
             println("## No rules for selecting best cluster, label 1 set by default...")
