@@ -152,7 +152,7 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
             # Masking for valid astrometric solutions (31 or 95)
             # as the library raises ValueError otherwise.
             mask_zpt = [ (p == 31 || p == 95) for p in astrometric_params_solved ]
-            params_zpt = copy(astrometric_params_solved)
+            params_zpt = Base.copy(astrometric_params_solved)
             for k in 1:length(params_zpt)
                 if !mask_zpt[k] params_zpt[k] = 31 end
             end
@@ -789,7 +789,7 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
             
             # Masking for valid astrometric solutions (31 or 95)
             mask_zpt = [ (p == 31 || p == 95) for p in astrometric_params_solved ]
-            params_zpt = copy(astrometric_params_solved)
+            params_zpt = Base.copy(astrometric_params_solved)
             for k in 1:length(params_zpt)
                 if !mask_zpt[k] params_zpt[k] = 31 end
             end
