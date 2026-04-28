@@ -55,8 +55,8 @@ function fullSky(meta)
 
     progressfile = "_done_hp.csv"
 
-    println(mfull)
-    println(mgene)
+    # println(mfull)
+    # println(mgene)
 
     if isfile(progressfile)
         dfp = CSV.File(progressfile, delim=",") |> DataFrame
@@ -533,14 +533,14 @@ function get_blacklist(m)
 end
 #################################### MAIN ########################
 let
-    println(ARGS)
+    # println(ARGS)
     println("############################")
     println("### Building Gaia results...")
 
     metabuild = TOML.parsefile(ARGS[1])
 
     key = collect(keys(metabuild))
-    println(key)
+    # println(key)
     for k in key
         # key1 = collect(keys(metabuild[k]))
 

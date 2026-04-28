@@ -84,9 +84,18 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
 
     if zpt
         try
-            zpt_module= pyimport("zero_point.zpt")
+            zpt_module = pyimport("zero_point.zpt")
             zpt_module.load_tables()
-            zcorr= zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, astrometric_params_solved)
+            
+            # Masking for valid astrometric solutions (31 or 95)
+            mask_zpt = [ (p == 31 || p == 95) for p in astrometric_params_solved ]
+            params_zpt = copy(astrometric_params_solved)
+            for k in 1:length(params_zpt)
+                if !mask_zpt[k] params_zpt[k] = 31 end
+            end
+
+            zcorr_raw = zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, params_zpt)
+            zcorr = zcorr_raw .* mask_zpt
 
             parallax = parallax .- zcorr
             distance = 1000. ./ parallax
@@ -96,8 +105,8 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
             vb       = 4.74e-3 .* pmb  .* distance
             
             GC.gc()
-        catch
-            println("## Issues with the ZPT correction...")
+        catch e
+            println("## Issues with the ZPT correction: ", e)
         end
     end
 

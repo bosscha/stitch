@@ -81,7 +81,7 @@ function get_gaia_data(radius, tol, ra, dec, name, rect, table= "gaiadr3.gaia_so
     end
 
     println("## Downloading data...")
-    println(adql)
+    # println(adql)
     job= gaia.Gaia.launch_job_async(adql, dump_to_file=true)
     outfile= job.outputFile
     filedst= @sprintf("%s-%2.1fdeg.vot",name, radius)
@@ -107,7 +107,7 @@ function get_gaia_data_many(gaia, radius, tol, ra, dec, name, rect, table= "gaia
     end
 
     println("## Downloading data...")
-    println(adql)
+    # println(adql)
     job= gaia.Gaia.launch_job_async(adql, dump_to_file=true)
     outfile= job.outputFile
     filedst= @sprintf("%s-%2.1fdeg.vot",name, radius)

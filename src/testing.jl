@@ -288,15 +288,15 @@ function __density_count(xx, yy, nbin=100, xrange=[-100,100],yrange=[-100,100])
         push!(xti, sx) ; push!(xv, xi)
         push!(yti, sy) ;  push!(yv, yi) 
     end
-    println(yv)
-    println(yti)
+    # println(yv)
+    # println(yti)
 
 
     PyPlot.plt.figure(figsize=(9.0,8.0))
     ax= PyPlot.plt.subplot(1, 1, 1 )
 
     println("toto...")
-    println(ax)
+    # println(ax)
     ax.set_xticks(xv) ;  ax.set_xticklabels(xti)
     ax.set_yticks(yv) ;  ax.set_yticklabels(yti)
 

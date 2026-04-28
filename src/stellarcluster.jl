@@ -417,7 +417,7 @@ function get_properties_SC2(indx, df::GaiaClustering.Df, dfcart::GaiaClustering.
     vraddisp = 0.
     indvrad = isnotnan(df.raw[13,indx])
 
-    debug_red(indvrad)
+    # debug_red(indvrad)
 
     if length(indvrad[indvrad]) >  1
         vrad = median(df.raw[13,indx[indvrad]])

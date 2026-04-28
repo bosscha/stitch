@@ -37,7 +37,7 @@ function spatialParameter(ocfile ; ntest=10 , nbin=20, niter=10000 ,verbose=true
 
         if verbose
             println("## Prior Guess:")
-            println(prior)
+            # println(prior)
             println("## prior estimated...")
         end
 
@@ -61,7 +61,7 @@ function spatialParameter(ocfile ; ntest=10 , nbin=20, niter=10000 ,verbose=true
 
             if verbose
                 println("## test: $i")
-                println(θbest)
+                # println(θbest)
                 println("## Likelihood: $ηbest")
                 println("## ACF(C,s,m): $acfC , $acfs , $acfm")
             end

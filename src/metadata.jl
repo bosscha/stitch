@@ -130,7 +130,7 @@ function read_params(file, verbose=true)
 
     s= size(t)
     for i in 1:s[1]
-        if verbose println(t[i,:]) end
+        # if verbose println(t[i,:]) end
         if t[i,2] == "="
             set_param!(par,t[i,1],t[i,3])
         else
