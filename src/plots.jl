@@ -962,3 +962,18 @@ function plot_sky(ra,dec ; radius=10, figname= "allsky.png")
     PyPlot.plt.close()
     GC.gc()
 end
+
+function plot_hp_sky(pix_done, nside ; figname= "allsky.png")
+    hp = pyimport("healpy")
+    npix = hp.nside2npix(nside)
+    m = zeros(npix)
+    for p in pix_done
+        m[p+1] = 1.0
+    end
+    
+    hp.mollview(m, title="Sky coverage", cmap="Greens", cbar=false, nest=true)
+    hp.graticule()
+    PyPlot.plt.savefig(figname)
+    PyPlot.plt.close()
+    GC.gc()
+end

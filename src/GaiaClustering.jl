@@ -59,7 +59,7 @@ export theta, thetaiter, abc_mcmc_dbscan, ministats, ministats_full,
 ## plotting functions
 include("plots.jl")
 export show_text, plot_dbscan_mcmc, plot_cluster, plot_dbscanfull_mcmc, plot_cluster2,
-  plot_rawdata, plot_astrom, plot_tail, level_dens, plot_sky
+  plot_rawdata, plot_astrom, plot_tail, level_dens, plot_sky, plot_hp_sky
 
 ## imaging functions
 include("imaging.jl")

@@ -97,7 +97,7 @@ function tail_stars(df::GaiaClustering.Df, dfcart::GaiaClustering.Df, dfnew::Gai
         fit1, err1, found1=  spatialParameter("", nbin=nbin, verbose=false, niter=15000, dfoc=dfstep1)
 
         dfinfo= DataFrame(cycle=cycle, nstep1=nstep1, nstep2=nstep2, ntotal=ntotal)
-        pc=[]
+        pc=zeros(0,0)
         oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m, save=false)
 
         ## plot_tail should be cleaned!! 

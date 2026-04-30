@@ -45,11 +45,16 @@ function fullSky(meta)
     mgene = meta["general"]
     mextra = read_params(mfull["extrafile"], false)
 
-    # ensure directories exist
-    wdir = mgene["wdir"]
+    # ensure directories exist and override result paths
+    wdir = abspath(mgene["wdir"])
     mkpath(wdir)
-    mkpath(joinpath(wdir, mextra.ocdir))
-    mkpath(joinpath(wdir, mextra.plotdir))
+    
+    # Force results and plots into dedicated subdirectories
+    mextra.ocdir = joinpath(wdir, "results")
+    mextra.plotdir = joinpath(wdir, "plots")
+    
+    mkpath(mextra.ocdir)
+    mkpath(mextra.plotdir)
     
     cd(wdir)
 
@@ -89,6 +94,11 @@ function fullSky(meta)
 
         println("=====================================================")
         println("## Processing central pixel: $P")
+
+        # Update progress plot
+        if !isempty(dfp.pix)
+            plot_hp_sky(dfp.pix, nside, figname="allsky_progress.png")
+        end
         
         neighbors = healpy.get_all_neighbours(nside, P, nest=true)
         # Filter out -1 which indicates missing neighbor (e.g. at corners, though nside=32 has neighbors)
@@ -110,7 +120,7 @@ function fullSky(meta)
                 conn = LibPQ.Connection(conn_str)
                 
                 # Fetch clusters from this votname
-                query = "SELECT cluster_id, ra, dec FROM $(mextra.dbtable)_metadata WHERE votname = '\$1';"
+                query = "SELECT cluster_id, ra, dec FROM $(mextra.dbtable)_metadata WHERE votname = \$1;"
                 res = execute(conn, query, [mextra.votname])
                 df_clusters = DataFrame(res)
                 
@@ -119,8 +129,8 @@ function fullSky(meta)
                     cpix = healpy.ang2pix(nside, row.ra, row.dec, nest=true, lonlat=true)
                     if cpix != P
                         println("## Cleanup: Cluster $(row.cluster_id) is centered in pixel $cpix instead of $P. Deleting from DB...")
-                        execute(conn, "DELETE FROM $(mextra.dbtable) WHERE cluster_id = '\$1';", [row.cluster_id])
-                        execute(conn, "DELETE FROM $(mextra.dbtable)_metadata WHERE cluster_id = '\$1';", [row.cluster_id])
+                        execute(conn, "DELETE FROM $(mextra.dbtable) WHERE cluster_id = \$1;", [row.cluster_id])
+                        execute(conn, "DELETE FROM $(mextra.dbtable)_metadata WHERE cluster_id = \$1;", [row.cluster_id])
                     else
                         println("## Cluster $(row.cluster_id) confirmed in central pixel $P.")
                     end
@@ -159,13 +169,15 @@ function reprocess(meta)
     println(blue("## Starting at $tstart"))
 
     mrepro = meta["reprocess"]
-    mgene = meta["general"]
     mextra = read_params(mrepro["extrafile"], false)
+    # Force results and plots into dedicated subdirectories
+    wdir = abspath(mgene["wdir"])
+    mextra.ocdir = joinpath(wdir, "results")
+    mextra.plotdir = joinpath(wdir, "plots")
 
+    checkdir(mextra.ocdir, mextra.plotdir)
 
-    checkdir(joinpath(mgene["wdir"], mextra.ocdir), joinpath(mgene["wdir"], mextra.plotdir))
-
-    debug_red(joinpath(mgene["wdir"], mextra.plotdir))
+    debug_red(mextra.plotdir)
 
     cd(mgene["wdir"])
 
@@ -289,12 +301,16 @@ function randomfields(meta)
     mgene = meta["general"]
     mextra = read_params(mrandom["extrafile"], false)
 
-    cd(mgene["wdir"])
+    wdir = abspath(mgene["wdir"])
+    cd(wdir)
     progressfile = "_done.csv"            #progress file 
-    mextra.rootdir = "./"
-    mextra.wdir = "./"
-    mextra.plotdir = "./plotSelect"
-    mextra.ocdir = "./oc"
+    mextra.rootdir = wdir
+    mextra.wdir = wdir
+    mextra.plotdir = joinpath(wdir, "plots")
+    mextra.ocdir = joinpath(wdir, "results")
+    
+    mkpath(mextra.plotdir)
+    mkpath(mextra.ocdir)
 
     println(mrandom)
     println(mgene)
@@ -368,12 +384,13 @@ function gridding(meta)
     mgene = meta["general"]
     mextra = read_params(mgrid["extrafile"], false)
 
-    cd(mgene["wdir"])
+    wdir = abspath(mgene["wdir"])
+    cd(wdir)
     progressfile = "_done.csv"            #progress file 
-    mextra.rootdir = "./"
-    mextra.wdir = "./"
-    mextra.plotdir = "./plotSelect"
-    mextra.ocdir = "./oc"
+    mextra.rootdir = wdir
+    mextra.wdir = wdir
+    mextra.plotdir = joinpath(wdir, "plots")
+    mextra.ocdir = joinpath(wdir, "results")
     
     # ensure directories exist so we don't get PyPlot write errors!
     mkpath(mextra.plotdir)

@@ -147,6 +147,7 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
     if zpt
         try
             zpt_module = pyimport("zero_point.zpt")
+            pyimport("warnings").filterwarnings("ignore", category=pyimport("builtins").UserWarning)
             zpt_module.load_tables()
             
             # Masking for valid astrometric solutions (31 or 95)
@@ -535,15 +536,15 @@ function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClus
         pmra=pmra, pmdec=pmdec, X=X, Y=Y, Z=Z, vl=vl,
         vb=vb, vrad=vrad, Xg=xg, Yg=yg, Zg=zg, gbar=gbar, rp=rp, bp=bp, ag=ag, a0=a0, ebmr=ebmr, mh=mh)
 
-    spc = size(pc)
-    if m.pca == "yes" && s[1] == spc[2]
-        for i in 1:spc[1]
-            colname = "PC$i"
-            oc[!, colname] = pc[i, :]
-        end
-    else
-        println("### Warning : PCA size and star number are not equal....")
-    end
+    # spc = size(pc)
+    # if m.pca == "yes" && length(spc) >= 2 && s[1] == spc[2]
+    #     for i in 1:spc[1]
+    #         colname = "PC$i"
+    #         oc[!, colname] = pc[i, :]
+    #     end
+    # else
+    #     println("### Warning : PCA size and star number are not equal....")
+    # end
 
     ## add type core(1)/tail(2)
     st = size(oc[!, :ra])
@@ -601,11 +602,11 @@ function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClus
                 # Make sure the column exists incase the table was already created
                 execute(conn, "ALTER TABLE $(m.dbtable) ADD COLUMN IF NOT EXISTS cluster_id VARCHAR(255);")
 
-                if m.pca == "yes" && s[1] == spc[2]
-                    for i in 1:spc[1]
-                        execute(conn, "ALTER TABLE $(m.dbtable) ADD COLUMN IF NOT EXISTS PC$i FLOAT;")
-                    end
-                end
+                # if m.pca == "yes" && s[1] == spc[2]
+                #     for i in 1:spc[1]
+                #         execute(conn, "ALTER TABLE $(m.dbtable) ADD COLUMN IF NOT EXISTS PC$i FLOAT;")
+                #     end
+                # end
 
                 ncol = size(oc)[2]
                 val_placeholders = join(["\$$i" for i in 1:ncol], ", ")
@@ -617,14 +618,14 @@ function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClus
             finally
                 close(conn)
             end
+        end
+
+        if isdir(ocdir)
+            CSV.write(filename, oc, delim=';')
+            @printf("### %s created  in %s \n", filename, ocdir)
         else
-            if isdir(ocdir)
-                CSV.write(filename, oc, delim=';')
-                @printf("### %s created  in %s \n", filename, ocdir)
-            else
-                print("\n### Error, result (oc) directory $ocdir not found... \n")
-                exit()
-            end
+            print("\n### Error, result (oc) directory $ocdir not found... \n")
+            exit()
         end
     end
 
@@ -785,6 +786,7 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
     if zpt
         try
             zpt_module = pyimport("zero_point.zpt")
+            pyimport("warnings").filterwarnings("ignore", category=pyimport("builtins").UserWarning)
             zpt_module.load_tables()
             
             # Masking for valid astrometric solutions (31 or 95)

@@ -1219,7 +1219,7 @@ function compute_PC(df::GaiaClustering.Df, dfcart::GaiaClustering.Df, labels, la
         s=size(labels[labelmax])
         if s[1] == 0 
             print("### No solutions found, PCA not performed")
-            return([0],[0,0,0])
+            return(zeros(0,0),[0,0,0])
         end
         data= zeros(8,s[1])
 
