@@ -226,6 +226,7 @@ function abc_mcmc_dbscan_full2(dfcart::GaiaClustering.Df, params::GaiaClustering
         Random.seed!()
         println("## ABC/MCMC for DBSCAN FULL (parameters+weighting)...")
         println("## ABC/MCMC v2")
+        println("## Clustering algorithm: $(params.algo)")
 
         mci = mcfull(zeros(Float64,0),zeros(Int32,0),zeros(Int32,0) , zeros(Float64,0), zeros(Int32,0),
         zeros(Float64,0), zeros(Float64,0), zeros(Float64,0))
@@ -476,6 +477,7 @@ function check_qminqstar_full2(dfcart::GaiaClustering.Df, params::GaiaClustering
         println("#### Checking the minQc and minQn conditions...")
         println("#### Minimum good solutions: $mingoodsolution")
         println("#### Number of iterations: $niter, maxiter: $maxiter")
+        println("## Clustering algorithm: $(params.algo)")
 
         totaliter= 0
         while notfound

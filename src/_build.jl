@@ -10,6 +10,7 @@ function extra(m::GaiaClustering.meta, optim)
     println("## Starting with $(m.votname)")
     println("## Starting at $tstart")
     println("## Id $uuid")
+    println("## Clustering algorithm: $(m.algo)")
 
     df , dfcart , dfcartnorm = get_data(m)
 

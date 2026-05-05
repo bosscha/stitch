@@ -167,6 +167,7 @@ function reprocess(meta)
     tstart = now()
     println(blue("## Reprocessing ..."))
     println(blue("## Starting at $tstart"))
+    println(blue("## Clustering algorithm: $(mextra.algo)"))
 
     mrepro = meta["reprocess"]
     mextra = read_params(mrepro["extrafile"], false)
