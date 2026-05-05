@@ -18,6 +18,10 @@ import GaiaClustering: clusters
 function GaiaClustering.clusters(data, epsilon, leaf, minneigh, mincluster)
     hd = pyimport("hdbscan")
     # data is (dimensions, n_samples), HDBSCAN expects (n_samples, dimensions)
+    # HDBSCAN requires min_cluster_size >= 2
+    mincluster = max(2, mincluster)
+    minneigh = max(1, minneigh)
+    
     # Map parameters to HDBSCAN equivalents
     clusterer = hd.HDBSCAN(min_cluster_size=mincluster, 
                            min_samples=minneigh, 

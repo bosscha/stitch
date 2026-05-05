@@ -526,7 +526,7 @@ function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClus
 
     ind = 1
     for i in 1:s[1]
-        xx, yy, zz = galXYZ.(l[i], b[i], d[i])
+        xx, yy, zz = galXYZ(ra[i], dec[i], d[i])
         xg[i] = xx
         yg[i] = yy
         zg[i] = zz
