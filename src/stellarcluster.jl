@@ -162,23 +162,44 @@ function metric(s::Df, labels ,proj = "spatial2d", APERTURE = 1.0 , MAXAPERTURE 
     return(Q)
 end
 
-### DBSCAN
-function clusters(data , epsilon, leaf , minneigh, mincluster)
-    eps = epsilon
-    leafsize = leaf
-    min_neighbors = minneigh
-    min_cluster_size = mincluster
+### DBSCAN / HDBSCAN
+function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
+    if algo == "hdbscan"
+        hd = pyimport("hdbscan")
+        # HDBSCAN requires min_cluster_size >= 2
+        mcl = max(2, mincluster)
+        mnei = max(1, minneigh)
+        
+        # data is (dimensions, n_samples), HDBSCAN expects (n_samples, dimensions)
+        clusterer = hd.HDBSCAN(min_cluster_size=mcl, 
+                               min_samples=mnei, 
+                               cluster_selection_epsilon=epsilon)
+                               
+        labels_ = clusterer.fit_predict(LinearAlgebra.transpose(data))
+        
+        label = Vector{Vector{Int}}()
+        n_clusters = maximum(labels_) # noise is -1
+        
+        for i in 0:n_clusters
+            indx = findall(x -> x == i, labels_)
+            if length(indx) > 0
+                push!(label, indx)
+            end
+        end
+        return label
+    else
+        # Default DBSCAN
+        res = dbscan(data , epsilon , leafsize = leaf, min_neighbors = minneigh, min_cluster_size=mincluster)
 
-    res = dbscan(data , eps , leafsize = leaf, min_neighbors = minneigh, min_cluster_size=mincluster)
+        label = Vector{Vector{Int}}()
 
-    label = Vector{Vector{Int}}()
-
-    for cl in res.clusters
-        indx = cl.core_indices
-        append!(indx, cl.boundary_indices)
-        push!(label,indx)
+        for cl in res.clusters
+            indx = cl.core_indices
+            append!(indx, cl.boundary_indices)
+            push!(label,indx)
+        end
+        return(label)
     end
-    return(label)
 end
 
 ## find clusters from dbscan with a metric
@@ -202,7 +223,7 @@ end
 function find_clusters2(df::GaiaClustering.Df, dfcart::GaiaClustering.Df , m::GaiaClustering.modelfull,
     param::GaiaClustering.meta, verbose= false)
     let
-        labels = clusters(df.data , m.eps , 20, m.min_nei, m.min_cl)
+        labels = clusters(df.data , m.eps , 20, m.min_nei, m.min_cl, algo=param.algo)
         nsol= length(labels)
         if nsol == 0 || nsol > param.clustermax
             if verbose println("### Warning... $nsol clusters found with find_clusters2, returns 0 ") end

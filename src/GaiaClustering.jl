@@ -11,7 +11,7 @@ using DataFrames, Formatting, Printf, Dates, DelimitedFiles
 using Clustering
 using Statistics, Distributions, Random, UUIDs
 using Distances, LightGraphs, SimpleWeightedGraphs, NearestNeighbors
-using Glob, GZip, FileIO, CSVFiles, ProgressMeter
+using Glob, GZip, FileIO, CSVFiles, ProgressMeter, LinearAlgebra
 
 ## For wavelet in imaging
 import Interpolations
@@ -28,7 +28,7 @@ import GeometryBasics as gb
 const Normal = Distributions.Normal
 const Rectangle = GeometryBasics.Rect2{Float64}
 
-VERSION = "2.1.0"
+VERSION = "2.1.1"
 
 ## include all the types
 include("types.jl")

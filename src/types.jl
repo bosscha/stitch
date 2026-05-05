@@ -169,6 +169,7 @@ mutable struct meta
     votname::String
     prefile::String
     isomodel::String
+    algo::String
     uuid::UUID
 
     optim::String
