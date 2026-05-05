@@ -167,10 +167,9 @@ function reprocess(meta)
     tstart = now()
     println(blue("## Reprocessing ..."))
     println(blue("## Starting at $tstart"))
-    println(blue("## Clustering algorithm: $(mextra.algo)"))
-
     mrepro = meta["reprocess"]
     mextra = read_params(mrepro["extrafile"], false)
+    println(blue("## Clustering algorithm: $(mextra.algo)"))
     # Force results and plots into dedicated subdirectories
     wdir = abspath(mgene["wdir"])
     mextra.ocdir = joinpath(wdir, "results")

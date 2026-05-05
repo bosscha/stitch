@@ -16,6 +16,7 @@ This guide explains the parameters used in the `.ext` configuration files (like 
 | Parameter | Description |
 | :--- | :--- |
 | `optim` | Perform ABC/MCMC optimization for DBSCAN parameters (`yes`/`no`). |
+| `algo` | Clustering algorithm selection (`dbscan` or `hdbscan`). |
 | `tail` | Perform a 2nd step extraction to find isolated members (tails) (`yes`/`no`). |
 | `iso` | Perform isochrone fitting to estimate age, metallicity, and mass (`yes`/`no`). |
 | `zpt` | Apply Zero Point offset correction for parallax (Lindegren 2020) (`yes`/`no`). |
