@@ -971,8 +971,11 @@ function plot_hp_sky(pix_done, nside ; figname= "allsky.png")
         m[p+1] = 1.0
     end
     
-    hp.mollview(m, title="Sky coverage", cmap="Greens", cbar=false, nest=true)
+    hp.mollview(m, title="Sky coverage (Equatorial)", cmap="Greens", cbar=false, nest=true)
     hp.graticule()
+    # Add labels for RA and Dec
+    PyPlot.plt.text(2.0, 0.1, "RA", fontsize=10)
+    PyPlot.plt.text(0.1, 1.1, "Dec", fontsize=10)
     PyPlot.plt.savefig(figname)
     PyPlot.plt.close()
     GC.gc()

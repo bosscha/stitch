@@ -522,7 +522,7 @@ function check_qminqstar_full2(dfcart::GaiaClustering.Df, params::GaiaClustering
         println("#### Checking the minQc and minQn conditions...")
         println("#### Minimum good solutions: $mingoodsolution")
         println("#### Number of iterations: $niter, maxiter: $maxiter")
-        println("## Clustering algorithm: $(params.algo)")
+        println("#### Clustering algorithm: $(params.algo)")
 
         totaliter = 0
         while notfound
