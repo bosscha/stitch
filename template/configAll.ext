@@ -11,6 +11,7 @@
 # votname   = "FSR 0224-2.0deg.vot"
 prefile    = "ocres"                 # prefix for the result files
 algo            = "dbscan"       ## clustering algorithm: dbscan|hdbscan
+release         = "DR3"          ## Gaia Data Release: DR2|EDR3|DR3
 
 ### MCMC
 ###

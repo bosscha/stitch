@@ -170,6 +170,7 @@ mutable struct meta
     prefile::String
     isomodel::String
     algo::String
+    release::String
     uuid::UUID
 
     optim::String

@@ -58,18 +58,19 @@ function fullSky(meta)
     
     cd(wdir)
 
-    progressfile = "_done_hp.csv"
-
-    # println(mfull)
-    # println(mgene)
-
-    if isfile(progressfile)
-        dfp = CSV.File(progressfile, delim=",") |> DataFrame
-        if !("pix" in names(dfp))
-            # Fallback if old format
-            dfp = DataFrame(pix=Int[])
-        end
-    else
+    progress_table = "$(mextra.dbtable)_processed_pixels"
+    
+    # Connect to DB to load progress
+    pwd_arg = (mextra.dbpass != "") ? "password=$(mextra.dbpass)" : ""
+    conn_str = "host=$(mextra.dbhost) user=$(mextra.dbuser) dbname=$(mextra.dbname) $pwd_arg"
+    
+    conn = LibPQ.Connection(conn_str)
+    execute(conn, "CREATE TABLE IF NOT EXISTS $progress_table (pix BIGINT PRIMARY KEY);")
+    res = execute(conn, "SELECT pix FROM $progress_table;")
+    dfp = DataFrame(res)
+    close(conn)
+    
+    if !("pix" in names(dfp))
         dfp = DataFrame(pix=Int[])
     end
 
@@ -95,10 +96,6 @@ function fullSky(meta)
         println("=====================================================")
         println("## Processing central pixel: $P")
 
-        # Update progress plot
-        if !isempty(dfp.pix)
-            plot_hp_sky(dfp.pix, nside, figname="allsky_progress.png")
-        end
         
         neighbors = healpy.get_all_neighbours(nside, P, nest=true)
         # Filter out -1 which indicates missing neighbor (e.g. at corners, though nside=32 has neighbors)
@@ -140,14 +137,24 @@ function fullSky(meta)
             
             # Save progress
             push!(dfp, [P])
-            CSV.write(progressfile, dfp, delim=",")
+            conn = LibPQ.Connection(conn_str)
+            execute(conn, "INSERT INTO $progress_table (pix) VALUES (\$1) ON CONFLICT DO NOTHING;", [P])
+            close(conn)
+            
+            # Update progress plot after saving
+            plot_hp_sky(dfp.pix, nside, figname="allsky_progress.png")
             
         catch e
             println("## Error processing pixel $P : $e")
             if isa(e, ErrorException) && occursin("No data found", e.msg)
                 println("## No stars fetched for $P, recording as done.")
                 push!(dfp, [P])
-                CSV.write(progressfile, dfp, delim=",")
+                conn = LibPQ.Connection(conn_str)
+                execute(conn, "INSERT INTO $progress_table (pix) VALUES (\$1) ON CONFLICT DO NOTHING;", [P])
+                close(conn)
+                
+                # Update progress plot after saving
+                plot_hp_sky(dfp.pix, nside, figname="allsky_progress.png")
             else
                 println("## Unexpected error. Resuming on next run might retry this pixel.")
                 # Depending on how the user wants to handle db drops, we may want to break or continue.

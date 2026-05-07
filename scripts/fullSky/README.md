@@ -31,4 +31,4 @@ Once the alias is set up, you can execute the full sky extraction by simply prov
 run_fullsky /home/stephane/Science_0/GAIA/stitch/template/fullsky.bld
 ```
 
-*(Note: The clustering process is fully resumable. Progress is tracked automatically using a `_done_hp.csv` file created in your working directory. If your machine crashes or shuts down, simply run the command again and it will resume from the exact HEALPix pixel it left off at.)*
+*(Note: The clustering process is fully resumable. Progress is tracked automatically in your PostgreSQL database inside a dynamically created table named `<dbtable>_processed_pixels`. If your machine crashes or shuts down, simply run the command again and it will resume from the exact HEALPix pixel it left off at.)*

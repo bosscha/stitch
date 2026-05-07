@@ -892,12 +892,15 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
 
            
                 insertcols!(scdf, 1, :votname => votname)
-                insertcols!(scdf, 2, :uuid => string(m.uuid))
-                insertcols!(scdf, 3, :cycle => cycle)
-                insertcols!(scdf, 4, :cluster_id => cluster_uuid)
-                insertcols!(scdf, 5, :pc3 => pcres[3])
-                insertcols!(scdf, 5, :pc2 => pcres[2])
-                insertcols!(scdf, 5, :pc1 => pcres[1])
+                insertcols!(scdf, 2, :datetime => Dates.format(tstart, "yyyy-mm-dd HH:MM:SS"))
+                insertcols!(scdf, 3, :uuid => string(m.uuid))
+                insertcols!(scdf, 4, :cycle => cycle)
+                insertcols!(scdf, 5, :cluster_id => cluster_uuid)
+                insertcols!(scdf, 6, :pc1 => pcres[1])
+                insertcols!(scdf, 7, :pc2 => pcres[2])
+                insertcols!(scdf, 8, :pc3 => pcres[3])
+                insertcols!(scdf, 9, :qc => qc)
+                insertcols!(scdf, 10, :release => m.release)
 
                 ## add solution used for DBSCAN and weighting
                 insertcols!(scdf, 30, :whrd => whrd)
