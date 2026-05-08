@@ -65,7 +65,9 @@ function fullSky(meta)
     conn_str = "host=$(mextra.dbhost) user=$(mextra.dbuser) dbname=$(mextra.dbname) $pwd_arg"
     
     conn = LibPQ.Connection(conn_str)
-    execute(conn, "CREATE TABLE IF NOT EXISTS $progress_table (pix BIGINT PRIMARY KEY);")
+    execute(conn, "CREATE TABLE IF NOT EXISTS $progress_table (pix BIGINT PRIMARY KEY, datetime VARCHAR(255));")
+    # Ensure column exists for existing tables
+    execute(conn, "ALTER TABLE $progress_table ADD COLUMN IF NOT EXISTS datetime VARCHAR(255);")
     res = execute(conn, "SELECT pix FROM $progress_table;")
     dfp = DataFrame(res)
     close(conn)
@@ -138,7 +140,7 @@ function fullSky(meta)
             # Save progress
             push!(dfp, [P])
             conn = LibPQ.Connection(conn_str)
-            execute(conn, "INSERT INTO $progress_table (pix) VALUES (\$1) ON CONFLICT DO NOTHING;", [P])
+            execute(conn, "INSERT INTO $progress_table (pix, datetime) VALUES (\$1, \$2) ON CONFLICT (pix) DO UPDATE SET datetime = EXCLUDED.datetime;", [P, Dates.format(now(), "yyyy-mm-dd HH:MM:SS")])
             close(conn)
             
             # Update progress plot after saving
@@ -150,7 +152,7 @@ function fullSky(meta)
                 println("## No stars fetched for $P, recording as done.")
                 push!(dfp, [P])
                 conn = LibPQ.Connection(conn_str)
-                execute(conn, "INSERT INTO $progress_table (pix) VALUES (\$1) ON CONFLICT DO NOTHING;", [P])
+                execute(conn, "INSERT INTO $progress_table (pix, datetime) VALUES (\$1, \$2) ON CONFLICT (pix) DO UPDATE SET datetime = EXCLUDED.datetime;", [P, Dates.format(now(), "yyyy-mm-dd HH:MM:SS")])
                 close(conn)
                 
                 # Update progress plot after saving

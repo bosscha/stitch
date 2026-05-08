@@ -486,7 +486,7 @@ end
 ####
 # Create the DataFrame to save the cluster...
 ##
-function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClustering.meta; save=true, cluster_id="")
+function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClustering.meta; save=true, cluster_id="", proba=[])
     ra = df.raw[1, labels[labelmax]]
     dec = df.raw[2, labels[labelmax]]
     l = df.data[1, labels[labelmax]]
@@ -535,6 +535,11 @@ function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClus
     oc = DataFrame(sourceid=source_id, ra=ra, dec=dec, l=l, b=b, parallax=parallax, parallax_err=parallax_err, distance=d,
         pmra=pmra, pmdec=pmdec, X=X, Y=Y, Z=Z, vl=vl,
         vb=vb, vrad=vrad, Xg=xg, Yg=yg, Zg=zg, gbar=gbar, rp=rp, bp=bp, ag=ag, a0=a0, ebmr=ebmr, mh=mh)
+
+    # Add probabilities if available
+    if !isempty(proba)
+        oc[!, :proba] = proba[labels[labelmax]]
+    end
 
     # spc = size(pc)
     # if m.pca == "yes" && length(spc) >= 2 && s[1] == spc[2]
@@ -594,13 +599,14 @@ function export_df(votname, ocdir, df, dfcart, labels, labelmax, pc, m::GaiaClus
       CREATE TABLE IF NOT EXISTS $(m.dbtable) (
           sourceid BIGINT, ra FLOAT, dec FLOAT, l FLOAT, b FLOAT, parallax FLOAT, parallax_err FLOAT, distance FLOAT,
           pmra FLOAT, pmdec FLOAT, X FLOAT, Y FLOAT, Z FLOAT, vl FLOAT, vb FLOAT, vrad FLOAT, Xg FLOAT, Yg FLOAT, Zg FLOAT,
-          gbar FLOAT, rp FLOAT, bp FLOAT, ag FLOAT, a0 FLOAT, ebmr FLOAT, mh FLOAT, type SMALLINT, cluster_id VARCHAR(255)
+          gbar FLOAT, rp FLOAT, bp FLOAT, ag FLOAT, a0 FLOAT, ebmr FLOAT, mh FLOAT, type SMALLINT, cluster_id VARCHAR(255), proba FLOAT
       )
       """
                 )
 
-                # Make sure the column exists incase the table was already created
+                # Make sure the columns exist incase the table was already created
                 execute(conn, "ALTER TABLE $(m.dbtable) ADD COLUMN IF NOT EXISTS cluster_id VARCHAR(255);")
+                execute(conn, "ALTER TABLE $(m.dbtable) ADD COLUMN IF NOT EXISTS proba FLOAT;")
 
                 # if m.pca == "yes" && s[1] == spc[2]
                 #     for i in 1:spc[1]

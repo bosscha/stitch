@@ -164,6 +164,7 @@ end
 
 ### DBSCAN / HDBSCAN
 function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
+    n_samples = size(data, 2)
     if algo == "hdbscan"
         hd = pyimport("hdbscan")
         # HDBSCAN requires min_cluster_size >= 2
@@ -176,6 +177,7 @@ function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
                                cluster_selection_epsilon=epsilon)
                                
         labels_ = clusterer.fit_predict(LinearAlgebra.transpose(data))
+        probabilities_ = clusterer.probabilities_
         
         label = Vector{Vector{Int}}()
         n_clusters = maximum(labels_) # noise is -1
@@ -186,19 +188,24 @@ function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
                 push!(label, indx)
             end
         end
-        return label
+        return label, probabilities_
     else
         # Default DBSCAN
         res = dbscan(data , epsilon , leafsize = leaf, min_neighbors = minneigh, min_cluster_size=mincluster)
 
         label = Vector{Vector{Int}}()
+        proba = zeros(Float64, n_samples)
 
         for cl in res.clusters
             indx = cl.core_indices
             append!(indx, cl.boundary_indices)
             push!(label,indx)
+            # For DBSCAN, we can set probability to 1.0 for all points in a cluster
+            for i in indx
+                proba[i] = 1.0
+            end
         end
-        return(label)
+        return label, proba
     end
 end
 
@@ -223,7 +230,7 @@ end
 function find_clusters2(df::GaiaClustering.Df, dfcart::GaiaClustering.Df , m::GaiaClustering.modelfull,
     param::GaiaClustering.meta, verbose= false)
     let
-        labels = clusters(df.data , m.eps , 20, m.min_nei, m.min_cl, algo=param.algo)
+        labels, proba = clusters(df.data , m.eps , 20, m.min_nei, m.min_cl, algo=param.algo)
         nsol= length(labels)
         if nsol == 0 || nsol > param.clustermax
             if verbose println("### Warning... $nsol clusters found with find_clusters2, returns 0 ") end
@@ -782,7 +789,7 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
 
                     mres = GaiaClustering.modelfull(eps,min_nei,min_cl,w3d,wvel,whrd)
                     dfcartnorm = getDfcartnorm(dfcart, mres)
-                    labels = clusters(dfcartnorm.data ,eps  , 20, min_nei, min_cl)
+                    labels, proba = clusters(dfcartnorm.data ,eps  , 20, min_nei, min_cl, algo=m.algo)
                 
                     if length(labels) == 0
                         FLAGmcmc= 0   ## to force stop even w/o optimization
@@ -805,7 +812,7 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
 
                 mres = GaiaClustering.modelfull(eps,min_nei,min_cl,w3d,wvel,whrd)
                 dfcartnorm = getDfcartnorm(dfcart, mres)
-                labels = clusters(dfcartnorm.data ,eps  , 20, min_nei, min_cl)
+                labels, proba = clusters(dfcartnorm.data ,eps  , 20, min_nei, min_cl, algo=m.algo)
 
                 if length(labels) == 0
                     FLAGmcmc= 0   ## to force stop even w/o optimization
@@ -840,10 +847,10 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
 
                 cluster_uuid = string(uuid4())
                 if m.pca == "no"
-                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m, cluster_id=cluster_uuid)
+                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m, cluster_id=cluster_uuid, proba=proba)
                 elseif m.pca == "yes"
                     println("## PCA components added to the oc")
-                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m, cluster_id=cluster_uuid)
+                    oc= export_df("$votname.$cycle", m.ocdir, df , dfcart , labels , labelmax, pc, m, cluster_id=cluster_uuid, proba=proba)
                 end
                 println("## label $labelmax written as an oc solution...")
 
