@@ -28,7 +28,7 @@ import GeometryBasics as gb
 const Normal = Distributions.Normal
 const Rectangle = GeometryBasics.Rect2{Float64}
 
-VERSION = "2.1.2"
+VERSION = "2.1.4"
 
 ## include all the types
 include("types.jl")
