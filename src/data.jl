@@ -446,6 +446,41 @@ function normalization_PerBlock(s::Df, block, weightblock, norm, density=false, 
 end
 
 ######
+function normalization_PerBlock!(dfresult::Df, s::Df, block, weightblock, norm, density=false, verbose=true)
+    ######
+    # dfresult is assumed to have the same dimensions and structure as s
+    ndf = size(s.data)
+    scale8d = zeros(ndf[1])
+    vector8d = 0.
+
+    ind = 1
+    for aw in zip(block, weightblock)
+        weight = aw[2]
+        for ak in aw[1]
+            normK = normalizationVector(norm, density, s.data[ak, :])
+            # note: normK calculated on s.data since dfresult might be overwritten
+            dfresult.data[ak, :] .= weight .* (s.data[ak, :] .- normK[1]) ./ normK[2]
+            scale8d[ind] = weight / normK[2]
+            vector8d += scale8d[ind]^2
+            ind += 1
+        end
+    end
+
+    vector8d = sqrt(vector8d)
+    scale8d .= scale8d ./ vector8d
+    dfresult.data .= dfresult.data ./ vector8d
+
+    if verbose
+        println("## Normalization $norm done...")
+        println("### [1pc,1pc,1pc,1km/s,1km/s,1mag,1mag,1mag] equivalent to $scale8d")
+        println("##")
+    end
+
+    return (dfresult, scale8d)
+end
+
+
+######
 function normalizationVector(norm, density, arr)
     ######
     vecNorm = [0.0, 1.0]

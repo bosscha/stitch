@@ -571,38 +571,67 @@ function metric2(s::GaiaClustering.Df, labels ,proj = "spatial2d", APERTURE = 1.
         qc = zeros(NBOOTSTRAP)
 
         for k in 1:NBOOTSTRAP
+            nout = 0
+            nin = 0
             if proj == "spatial2d"
                 prob =  prob2d
                 yout = ycenter + rad_out[k] * cos(angle_out[k])
                 zout = zcenter + rad_out[k] * sin(angle_out[k])
-                radii_out = (slab[2,:] .- yout) .* (slab[2,:] .- yout) .+ (slab[3,:] .- zout) .* (slab[3,:] .- zout)
                 yin = ycenter + rad_in[k] * cos(angle_in[k])
                 zin = zcenter + rad_in[k] * sin(angle_in[k])
-                radii_in = (slab[2,:] .- yin) .* (slab[2,:] .- yin) .+ (slab[3,:] .- zin) .* (slab[3,:] .- zin)
+                @inbounds for i in 1:size(slab, 2)
+                    dy_out = slab[2, i] - yout
+                    dz_out = slab[3, i] - zout
+                    if dy_out*dy_out + dz_out*dz_out < aper2
+                        nout += 1
+                    end
+                    dy_in = slab[2, i] - yin
+                    dz_in = slab[3, i] - zin
+                    if dy_in*dy_in + dz_in*dz_in < aper2
+                        nin += 1
+                    end
+                end
             elseif proj == "spatial3d"
                 prob = prob3d
                 xout = xcenter + rad_out[k] * cos(angle_out[k]) *  cos(phi_out[k])
                 yout = ycenter + rad_out[k] * sin(angle_out[k]) *  cos(phi_out[k])
                 zout = zcenter + rad_out[k] * sin(phi_out[k])
-                radii_out = (slab[1,:] .- xout) .* (slab[1,:] .- xout) .+ (slab[2,:] .- yout) .* (slab[2,:] .- yout).+ (slab[3,:] .- zout) .* (slab[3,:] .- zout)
                 xin = xcenter + rad_in[k] * cos(angle_in[k]) *  cos(phi_in[k])
                 yin = ycenter + rad_in[k] * sin(angle_in[k]) *  cos(phi_in[k])
                 zin = zcenter + rad_in[k] * sin(phi_in[k])
-                radii_in = (slab[1,:] .- xin) .* (slab[1,:] .- xin) .+ (slab[2,:] .- yin) .* (slab[2,:] .- yin).+ (slab[3,:] .- zin) .* (slab[3,:] .- zin)
+                @inbounds for i in 1:size(slab, 2)
+                    dx_out = slab[1, i] - xout
+                    dy_out = slab[2, i] - yout
+                    dz_out = slab[3, i] - zout
+                    if dx_out*dx_out + dy_out*dy_out + dz_out*dz_out < aper2
+                        nout += 1
+                    end
+                    dx_in = slab[1, i] - xin
+                    dy_in = slab[2, i] - yin
+                    dz_in = slab[3, i] - zin
+                    if dx_in*dx_in + dy_in*dy_in + dz_in*dz_in < aper2
+                        nin += 1
+                    end
+                end
             elseif proj == "velocity"
                 prob = probvel
                 vxout = vxcenter + rad_out[k] * cos(angle_out[k])
                 vyout = vycenter + rad_out[k] * sin(angle_out[k])
-                radii_out = (slab[4,:] .- vxout) .* (slab[4,:] .- vxout) .+ (slab[5,:] .- vyout) .* (slab[5,:] .- vyout)
                 vxin = vxcenter + rad_in[k] * cos(angle_in[k])
                 vyin = vycenter + rad_in[k] * sin(angle_in[k])
-                radii_in = (slab[4,:] .- vxin) .* (slab[4,:] .- vxin) .+ (slab[5,:] .- vyin) .* (slab[5,:] .- vyin)
+                @inbounds for i in 1:size(slab, 2)
+                    dvx_out = slab[4, i] - vxout
+                    dvy_out = slab[5, i] - vyout
+                    if dvx_out*dvx_out + dvy_out*dvy_out < aper2
+                        nout += 1
+                    end
+                    dvx_in = slab[4, i] - vxin
+                    dvy_in = slab[5, i] - vyin
+                    if dvx_in*dvx_in + dvy_in*dvy_in < aper2
+                        nin += 1
+                    end
+                end
             end
-
-            isdout = radii_out .< aper2
-            nout   = length(radii_out[isdout])
-            isin   = radii_in .< aper2
-            nin    = length(radii_in[isin])
 
             qc[k] = prob * (log(max(1,nin)) - log(max(1,nout)))
 

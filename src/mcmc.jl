@@ -238,6 +238,16 @@ function getDfcartnorm(dfcart::GaiaClustering.Df, mc::modelfull)
     return (dfcartnorm)
 end
 
+function getDfcartnorm!(dfcartnorm::GaiaClustering.Df, dfcart::GaiaClustering.Df, mc::modelfull)
+    blck = [[1, 2, 3], [4, 5], [6, 7, 8]]
+    wghtblck = [mc.w3d, mc.wvel, mc.whrd]
+    norm = "identity"
+
+    normalization_PerBlock!(dfcartnorm, dfcart, blck, wghtblck, norm, false, false)
+    return (dfcartnorm)
+end
+
+
 ## optimize dbscan parameters with ABC/MCMC method
 ##
 function abc_mcmc_dbscan_full2(dfcart::GaiaClustering.Df, params::GaiaClustering.meta)
@@ -284,10 +294,11 @@ function abc_mcmc_dbscan_full2(dfcart::GaiaClustering.Df, params::GaiaClustering
 
         iter = 0
         p = Progress(maxiter, "Initialization...")
+        dfcartnorm = copy(dfcart)
 
         while initial
             mi, probi = theta_full(params)
-            dfcartnorm = getDfcartnorm(dfcart, mi)
+            dfcartnorm = getDfcartnorm!(dfcartnorm, dfcart, mi)
             qres, nstars = find_clusters2(dfcartnorm, dfcart, mi, params)
             if qres > minimumQ && nstars >= minstars && nstars <= maxstars
                 println("\n### init done ...")
@@ -322,7 +333,7 @@ function abc_mcmc_dbscan_full2(dfcart::GaiaClustering.Df, params::GaiaClustering
 
         while loopAgain
             micurrent, probcurrent = thetaiter_full(mi, params)
-            dfcartnorm = getDfcartnorm(dfcart, micurrent)
+            dfcartnorm = getDfcartnorm!(dfcartnorm, dfcart, micurrent)
             qres, nstars = find_clusters2(dfcartnorm, dfcart, micurrent, params)
 
             if qres > minimumQ && nstars >= minstars && nstars <= maxstars
