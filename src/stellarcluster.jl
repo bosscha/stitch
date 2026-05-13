@@ -1020,6 +1020,22 @@ function cycle_extraction_optim(df::GaiaClustering.Df, dfcart::GaiaClustering.Df
                     insertcols!(scdf, 33, :ncore => scdf.nstars)
                 end
 
+                ## Entropy calculation (5D Phase-Space)
+                if m.tail == "yes"
+                    idx_all = labels[1]
+                    idx_core = labels[2]
+                else
+                    idx_all = labels[labelmax]
+                    idx_core = labels[labelmax]
+                end
+
+                h_all = (length(idx_all) > 5) ? kozachenko_leonenko_entropy(dfcart.data[1:5, idx_all], k=3) : NaN
+                h_core = (length(idx_core) > 5) ? kozachenko_leonenko_entropy(dfcart.data[1:5, idx_core], k=3) : NaN
+
+                insertcols!(scdf, 1, :entropy_all => h_all)
+                insertcols!(scdf, 1, :entropy_core => h_core)
+
+
                 ## isochrone fitting, if not, placeholder..
                 insertcols!(scdf, 7, :feh_gaia => feh_gaia)
                 insertcols!(scdf, 7, :feh => feh)
@@ -1379,4 +1395,81 @@ function bootstrapping_distance(arr, err, Nboot= 50)
 
 
     return(dist, sig)
+end
+
+"""
+    volume_unit_sphere(D::Int)
+
+Returns the volume of an n-dimensional unit sphere.
+"""
+function volume_unit_sphere(D::Int)
+    volumes = [2.0, π, (4.0/3.0)*π, 0.5*π^2, (8.0/15.0)*π^2, (1.0/6.0)*π^3]
+    return D <= 6 ? volumes[D] : error("Dimension $D not supported. Max 6D.")
+end
+
+"""
+    digamma_int(k::Int)
+
+Computes the digamma function ψ(k) for integer values.
+"""
+function digamma_int(k::Int)
+    γ = 0.57721566490153286 # Euler-Mascheroni constant
+    res = -γ
+    for n in 1:(k-1)
+        res += 1.0 / n
+    end
+    return res
+end
+
+"""
+    kozachenko_leonenko_entropy(data::AbstractMatrix{Float64}; k::Int=3)
+
+Compute the Kozachenko-Leonenko estimator of differential phase-space entropy.
+`data` should be a D x N matrix (D dimensions, N points).
+We use the k-th nearest neighbor (k=3 is robust against outliers).
+"""
+function kozachenko_leonenko_entropy(data::AbstractMatrix{Float64}; k::Int=3)
+    D, N = size(data)
+    if N <= k
+        return NaN
+    end
+
+    # 1. Normalize the data
+    # Standardizing (Z-score) is critical because spatial dimensions (pc) 
+    # and velocity dimensions (km/s) have completely different units and scales.
+    normalized_data = Base.copy(data)
+    for d in 1:D
+        dim_data = data[d, :]
+        μ = mean(dim_data)
+        σ = std(dim_data)
+        if σ > 0
+            normalized_data[d, :] .= (dim_data .- μ) ./ σ
+        end
+    end
+
+    # 2. Build KDTree for efficient nearest neighbor search
+    tree = KDTree(normalized_data)
+    
+    # 3. Find the k-th nearest neighbor distance for each point
+    # We ask for k+1 neighbors because the point itself is the 1st neighbor (dist=0)
+    idxs, dists = knn(tree, normalized_data, k + 1, true)
+    
+    log_R_sum = 0.0
+    for i in 1:N
+        # The (k+1)-th element is the k-th nearest neighbor
+        R_i = dists[i][k + 1]
+        if R_i > 0
+            log_R_sum += log(R_i)
+        else
+            # Handling duplicate points in phase space (rare, but mathematically blows up)
+            log_R_sum += log(eps(Float64))
+        end
+    end
+    
+    # 4. Compute the final estimator
+    V_D = volume_unit_sphere(D)
+    psi_k = digamma_int(k)
+    
+    H = (D / N) * log_R_sum + log(V_D) + log(N - 1) - psi_k
+    return H
 end

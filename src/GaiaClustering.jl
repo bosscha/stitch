@@ -28,7 +28,7 @@ import GeometryBasics as gb
 const Normal = Distributions.Normal
 const Rectangle = GeometryBasics.Rect2{Float64}
 
-VERSION = "2.1.5"
+VERSION = "2.1.6"
 
 ## include all the types
 include("types.jl")
@@ -38,6 +38,7 @@ export modelCauchy, Grav, abcfull, mcfull, modelfull, meta
 include("data.jl")
 export read_votable, filter_data, filter_pg_data, add_cartesian, normalization_PerBlock, copy1,
   subsetDf, galXYZ, PM_equatorial2galactic, galUVW, export_df, equatorial2galactic,
+  kozachenko_leonenko_entropy,
   angle4sphere, get_data, get_data_pg
 
 ## Geometry functions (Voronoi, correlation2d)
