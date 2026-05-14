@@ -1,0 +1,79 @@
+## parameters for optimal full-sky Galaxy extraction (MCMC + HDBSCAN)
+
+prefile         = "ocres-optimal"        # prefix for the result files
+isomodel        = "/home/stephane/Science/GAIA/products/standalone/isochrones/MIST_serial"
+
+## extra init for standalone
+optim           = "yes"          ## yes|no for weighting/dbscan optimization
+algo            = "hdbscan"      ## MUST BE hdbscan for full-sky (handles varying densities better than dbscan)
+release         = "DR3"          ## Gaia Data Release
+pca             = "yes"          ## Add Principal Component coordinates in oc file
+zpt             = "yes"          ## apply Zero point offset correction for parallax (Lindengren 2020)
+iso             = "yes"          ## isochrone fitting to estimate age, metallicity, and mass
+tail            = "yes"          ## perform 2nd step for extraction (tails)
+
+savedb          = "yes"          ## save cluster stars to PostgreSQL
+dbhost          = "127.0.0.1"    
+dbuser          = "postgres"     
+dbpass          = "tallis"       
+dbname          = "gaiadb"       
+dbtable         = "clusters"     
+
+# Define the absolute minimum/maximum bounds to fetch from PostgreSQL
+mindist         = 0.0            ## minimum distance to filter stars in pc
+maxdist         = 15000.0        ## maximum distance to filter stars in pc
+minvra          = -250.0         ## min vra km/s
+maxvra          = 250.0          ## max vra km/s
+minvdec         = -250.0         ## min vdec km/s
+maxvdec         = 250.0          ## max vdec km/s
+ming            = 0.0            ## min phot_g_mean_mag
+maxg            = 22.0           ## max phot_g_mean_mag
+
+## parameters for 2nd step extraction ("tail")
+maxRadTail      = 100.0          ## REDUCED from 250: Prevents "depleting" the field for nearby clusters
+maxVelTail      = 8.0            ## REDUCED from 10: Tighter kinematic grouping for tails
+maxDistCmdTail  = 0.10           ## SLIGHTLY INCREASED: Allows tail stars with slightly worse photometry to be matched
+
+### MCMC
+minQc           = 2.8            ## INCREASED from 2.6: Demands higher density contrast to avoid "ghost" clusters
+minQn           = 30             ## minimum Qn metric in MCMC
+maxQn           = 10000          ## maximum Qn metric in MCMC
+forcedminstars  = 50             ## INCREASED: Forces MCMC to ignore tiny 20-star groups and find massive clusters first
+mingoodsolution = 15             
+niterqminq      = 1000           
+
+nburnout        = 500            ## burn-in iterations
+nchain          = 3000           ## MCMC chains
+maxiter         = 25000          ## INCREASED: Gives MCMC more time to converge on massive clusters
+
+### Cycle parameters
+cyclemax            = 50         ## INCREASED: Full sky blocks can have dozens of clusters. Don't stop at 5.
+minstarstop         = 40         ## Stop cycling if the best cluster found has fewer than 40 stars
+minchainreached     = 100       
+qcminstop           = 1.5        
+wratiominstop       = 0.05       
+
+## prior settings
+epsmean         = 1.0            ## REDUCED: HDBSCAN uses this as 'cluster_selection_epsilon'. 1.0 pc in normalized space is a good physical anchor.
+epsdisp         = 0.5            
+min_nei         = 15             ## INCREASED: Smoothes out the core, reducing noise
+min_cl          = 25             ## INCREASED: HDBSCAN min_cluster_size
+ncoredisp       = 10             
+w3dmean         = 6.0            
+w3ddisp         = 4.0            
+wvelmean        = 6.0            
+wveldisp        = 4.0            
+whrdmean        = 2.0            
+whrddisp        = 1.5            
+
+## Metrics Q & find_clusters
+clustermax      = 100            
+aperture2d      = 1.5
+maxaperture2d   = 15.0
+aperture3d      = 3.0
+maxaperture3d   = 20
+aperturev       = 3.0
+maxaperturev    = 20.0
+nboot           = 50
+
+labels          = "QcQn"         ## Keeps the balanced approach (Quality vs Size)

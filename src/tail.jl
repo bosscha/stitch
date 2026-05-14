@@ -10,52 +10,51 @@ function tail_stars(df::GaiaClustering.Df, dfcart::GaiaClustering.Df, dfnew::Gai
     
     ## source id for the full solution, starting with the old one...
 
-    s=dfnew.ndata
-    s1= length(dfnew.data[4,:])
-    dnew= transform_df(dfnew, dfcartnew, 1:s)
+    s = dfnew.ndata
+    println("### Starting tail search in $s remaining stars...")
+
+    dnew = transform_df(dfnew, dfcartnew, 1:s)
 
     debug_red(median(dnew.Y))
 
-    xcenter= median(doc.X) ; ycenter= median(doc.Y) ;  zcenter= median(doc.Z)
-    vlc= median(doc.vl) ; vbc= median(doc.vb) ; vrc= median(doc.vrad)
+    xcenter = median(doc.X) ; ycenter = median(doc.Y) ; zcenter = median(doc.Z)
+    vlc = median(doc.vl) ; vbc = median(doc.vb) ; vrc = median(doc.vrad)
 
-    radiusMax= m.maxRadTail  ## distance max to oc
-    r2= radiusMax*radiusMax
+    radiusMax = m.maxRadTail
+    r2 = radiusMax * radiusMax
 
-    velocityMax= m.maxVelTail ## velocity difference max
-    v2= velocityMax*velocityMax
+    velocityMax = m.maxVelTail
+    v2 = velocityMax * velocityMax
 
-    dnewrad=filter(row -> ((row.X-xcenter)*(row.X-xcenter)+(row.Y-ycenter)*(row.Y-ycenter)+(row.Z-zcenter)*(row.Z-zcenter)) < r2, dnew)
-    dnewvel=filter(row -> ((row.vl .- vlc)*(row.vl .- vlc) + (row.vb .- vbc)*(row.vb .- vbc)) < v2, dnewrad)
+    dnewrad = filter(row -> ((row.X - xcenter) * (row.X - xcenter) + (row.Y - ycenter) * (row.Y - ycenter) + (row.Z - zcenter) * (row.Z - zcenter)) < r2, dnew)
+    srad = nrow(dnewrad)
+    println("### Step 2a (Radius < $radiusMax pc): $srad stars remaining")
+
+    dnewvel = filter(row -> ((row.vl .- vlc) * (row.vl .- vlc) + (row.vb .- vbc) * (row.vb .- vbc)) < v2, dnewrad)
+    svel = nrow(dnewvel)
+    println("### Step 2b (Velocity < $velocityMax km/s): $svel stars remaining")
+
+    doc_clean = filter(:BmR0 => x -> !(ismissing(x) || isnothing(x) || isnan(x)), doc)
+    dnewvel_clean = filter(:BmR0 => x -> !(ismissing(x) || isnothing(x) || isnan(x)), dnewvel)
     
-    s= length(dfnew.data[1, :])
-    srad= length(dnewrad.X)
-    svel= length(dnewvel.X)
+    sclean_core = nrow(doc_clean)
+    sclean_tail = nrow(dnewvel_clean)
+    println("### Step 2c (Valid Photometry): Core=$sclean_core, Tail Candidates=$sclean_tail")
 
-    debug_red("Filtering..")
-    debug_red("$s $srad $svel")
+    idx_tail, dist = distance_cmd_tail(doc_clean, dnewvel_clean)
 
-    doc= filter(:BmR0 => x -> !(ismissing(x) || isnothing(x) || isnan(x)), doc)
-    debug_red("doc filtered $(size(doc))")
-    dnewvel= filter(:BmR0 => x -> !(ismissing(x) || isnothing(x) || isnan(x)), dnewvel)
-    
-    idx_tail , dist= distance_cmd_tail(doc,dnewvel)
-
-    # __plot_dist_cmd(dist) ## plot and save the cmd dist...
-    
     ## cut with cmd
-    cmdDistMax= m.maxDistCmdTail
-    idc= findall(x->(x< cmdDistMax),dist)
+    cmdDistMax = m.maxDistCmdTail
+    idc = findall(x -> (x < cmdDistMax), dist)
+    snew = length(idc)
+    println("### Step 2d (CMD Distance < $cmdDistMax mag): $snew stars found")
 
-    dnewcmd= dnewvel[idc,:]
-
-    sid_final= vcat(df.sourceid[1,idx],dnewcmd.sourceid) 
+    dnewcmd = dnewvel_clean[idc, :]
     
-    label_newsolution= []
-
-    sold= size(idx)[1] ; snew= size(idc)[1]
-    println("### Tail solutions step 1: $sold")
-    println("### Tail solutions step 2: $snew")
+    sid_final = vcat(df.sourceid[1, idx], dnewcmd.sourceid) 
+    
+    label_newsolution = []
+    sold = length(idx)
 
     for sid in sid_final
         inew= findall(x-> x == sid, df.sourceid[1,:])
