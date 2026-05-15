@@ -2,70 +2,83 @@
 ###
 
 ## return index which are not NAN
-function  isnotnan(arr)
+function isnotnan(arr)
     index = map(!isnan, arr[:])
 
-    return(index)
+    return (index)
 end
 
 ###return blacklist if any
 function read_blacklist(blackname)
     if isfile(blackname)
-        df= CSV.read(blackname, delim=";")
-        blacklist= df.votname
+        df = CSV.read(blackname, delim=";")
+        blacklist = df.votname
     else
-        blacklist= [""]
+        blacklist = [""]
     end
 
-    return(blacklist)
+    return (blacklist)
 end
 
 ## transform struct to DF
 function convertStruct2Df(s)::DataFrame
-    T= typeof(s)
-    f= fieldnames(T)
-    n=length(f)
+    T = typeof(s)
+    f = fieldnames(T)
+    n = length(f)
 
-     field1= fieldname(T,1) ; val1= getfield(s, field1)
-     df= DataFrame(field1 => val1)
+    field1 = fieldname(T, 1)
+    val1 = getfield(s, field1)
+    df = DataFrame(field1 => val1)
 
-     for i in 2:n
-         field= fieldname(T,i)
-         val= getfield(s, field)
-         insertcols!(df,i,field=>val)
-     end
+    for i in 2:n
+        field = fieldname(T, i)
+        val = getfield(s, field)
+        insertcols!(df, i, field => val)
+    end
 
-     return(df)
+    return (df)
 end
 
 ## special printing code
 ## return string
 function specialstr(str, CODE)
-    d= Dict( "PURPLE" => "\033[95m" ,
-             "CYAN" => "\033[96m" ,
-             "DARKCYAN" => "\033[36m" ,
-             "BLUE" => "\033[94m" ,
-             "GREEN" => "\033[92m" ,
-             "YELLOW" => "\033[93m" ,
-             "RED" => "\033[91m" ,
-             "BOLD" => "\033[1m" ,
-             "UNDERLINE" => "\033[4m" ,
-             "END" => "\033[0m")
+    d = Dict("PURPLE" => "\033[95m",
+        "CYAN" => "\033[96m",
+        "DARKCYAN" => "\033[36m",
+        "BLUE" => "\033[94m",
+        "GREEN" => "\033[92m",
+        "YELLOW" => "\033[93m",
+        "RED" => "\033[91m",
+        "BOLD" => "\033[1m",
+        "UNDERLINE" => "\033[4m",
+        "END" => "\033[0m")
 
     if haskey(d, CODE)
-        res= @sprintf("%s%s%s", d[CODE], str, d["END"])
-        return(res)
+        res = @sprintf("%s%s%s", d[CODE], str, d["END"])
+        return (res)
     else
-        return(str)
+        return (str)
     end
 end
 
-function bold(s) GaiaClustering.specialstr(s,"BOLD") end
-function yellow(s) GaiaClustering.specialstr(s,"YELLOW") end
-function purple(s) GaiaClustering.specialstr(s,"PURPLE") end
-function cyan(s) GaiaClustering.specialstr(s,"CYAN") end
-function blue(s) GaiaClustering.specialstr(s,"BLUE") end
-function red(s) GaiaClustering.specialstr(s,"RED") end
+function bold(s)
+    GaiaClustering.specialstr(s, "BOLD")
+end
+function yellow(s)
+    GaiaClustering.specialstr(s, "YELLOW")
+end
+function purple(s)
+    GaiaClustering.specialstr(s, "PURPLE")
+end
+function cyan(s)
+    GaiaClustering.specialstr(s, "CYAN")
+end
+function blue(s)
+    GaiaClustering.specialstr(s, "BLUE")
+end
+function red(s)
+    GaiaClustering.specialstr(s, "RED")
+end
 
 function header_extract()
     println("#")
@@ -81,12 +94,12 @@ end
 
 ### check if two directories exist, if not issue a warning and extinction
 ### useful for ocdir and plotdir
-function checkdir(dir1 , dir2, stopped=true)
+function checkdir(dir1, dir2, stopped=true)
     debug_red(pwd())
 
-    if !isdir(dir1) || !isdir(dir2) 
+    if !isdir(dir1) || !isdir(dir2)
         println("## Error... directory $dir1 or $dir2 does not exist...")
-        if stopped 
+        if stopped
             exit()
         end
     end

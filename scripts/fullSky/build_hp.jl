@@ -29,7 +29,6 @@ using GaiaClustering
 
 
 
-
 ########################  HP 
 ### All-sky processing
 function fullSky(meta)
