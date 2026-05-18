@@ -102,11 +102,11 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
         bgal[i] = safe_pyconvert(Float64, get(gaia, i - 1).b, 0.0)
         ra[i] = safe_pyconvert(Float64, get(gaia, i - 1).ra, 0.0)
         dec[i] = safe_pyconvert(Float64, get(gaia, i - 1).dec, 0.0)
-        
+
         parallax_val = safe_pyconvert(Float64, get(gaia, i - 1).parallax, 0.0)
         parallax[i] = parallax_val
         distance[i] = parallax_val == 0.0 ? Inf : 1000. / parallax_val
-        
+
         pmra[i] = safe_pyconvert(Float64, get(gaia, i - 1).pmra, 0.0)
         pmdec[i] = safe_pyconvert(Float64, get(gaia, i - 1).pmdec, 0.0)
         vra[i] = 4.74e-3 * pmra[i] * distance[i]
@@ -149,13 +149,15 @@ function filter_data(gaia, dist_range=[0., 2000], vra_range=[-250, 250],
             zpt_module = pyimport("zero_point.zpt")
             pyimport("warnings").filterwarnings("ignore", category=pyimport("builtins").UserWarning)
             zpt_module.load_tables()
-            
+
             # Masking for valid astrometric solutions (31 or 95)
             # as the library raises ValueError otherwise.
-            mask_zpt = [ (p == 31 || p == 95) for p in astrometric_params_solved ]
+            mask_zpt = [(p == 31 || p == 95) for p in astrometric_params_solved]
             params_zpt = Base.copy(astrometric_params_solved)
             for k in 1:length(params_zpt)
-                if !mask_zpt[k] params_zpt[k] = 31 end
+                if !mask_zpt[k]
+                    params_zpt[k] = 31
+                end
             end
 
             zcorr_raw = zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, params_zpt)
@@ -829,12 +831,14 @@ function filter_pg_data(df_pg::DataFrame, dist_range, vra_range, vdec_range, mag
             zpt_module = pyimport("zero_point.zpt")
             pyimport("warnings").filterwarnings("ignore", category=pyimport("builtins").UserWarning)
             zpt_module.load_tables()
-            
+
             # Masking for valid astrometric solutions (31 or 95)
-            mask_zpt = [ (p == 31 || p == 95) for p in astrometric_params_solved ]
+            mask_zpt = [(p == 31 || p == 95) for p in astrometric_params_solved]
             params_zpt = Base.copy(astrometric_params_solved)
             for k in 1:length(params_zpt)
-                if !mask_zpt[k] params_zpt[k] = 31 end
+                if !mask_zpt[k]
+                    params_zpt[k] = 31
+                end
             end
 
             zcorr_raw = zpt_module.get_zpt(g, nu_eff_used_in_astrometry, pseudocolour, ecl_lat, params_zpt)
@@ -920,28 +924,9 @@ function get_data_pg(m::GaiaClustering.meta, pixels::Vector{Int})
     conn = LibPQ.Connection(conn_str)
 
     pixels_str = join(pixels, ", ")
-    
-    # Pre-filter in SQL to massively reduce memory footprint and Julia loop iterations
-    filters = ["(source_id >> 49) IN ($pixels_str)"]
-    
-    margin = m.zpt == "yes" ? 0.1 : 0.0
-    if m.maxdist > 0 && m.maxdist < 100000.0
-        min_plx = (1000.0 / m.maxdist) - margin
-        push!(filters, "parallax >= $min_plx")
-    end
-    if m.mindist > 0
-        max_plx = (1000.0 / m.mindist) + margin
-        push!(filters, "parallax <= $max_plx")
-    end
-    
-    push!(filters, "phot_g_mean_mag >= $(m.ming)")
-    push!(filters, "phot_g_mean_mag <= $(m.maxg)")
-
-    where_clause = join(filters, " AND ")
-    
     query = """
     SELECT * FROM gaia_source 
-    WHERE $where_clause
+    WHERE (source_id >> 49) IN ($pixels_str)
     """
 
     result = execute(conn, query)
