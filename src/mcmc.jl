@@ -293,7 +293,7 @@ function abc_mcmc_dbscan_full2(dfcart::GaiaClustering.Df, params::GaiaClustering
         end
 
         iter = 0
-        p = Progress(maxiter, "Initialization...")
+        p = Progress(maxiter, "Optimization...")
         dfcartnorm = copy(dfcart)
 
         while initial

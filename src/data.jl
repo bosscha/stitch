@@ -920,9 +920,28 @@ function get_data_pg(m::GaiaClustering.meta, pixels::Vector{Int})
     conn = LibPQ.Connection(conn_str)
 
     pixels_str = join(pixels, ", ")
+    
+    # Pre-filter in SQL to massively reduce memory footprint and Julia loop iterations
+    filters = ["(source_id >> 49) IN ($pixels_str)"]
+    
+    margin = m.zpt == "yes" ? 0.1 : 0.0
+    if m.maxdist > 0 && m.maxdist < 100000.0
+        min_plx = (1000.0 / m.maxdist) - margin
+        push!(filters, "parallax >= $min_plx")
+    end
+    if m.mindist > 0
+        max_plx = (1000.0 / m.mindist) + margin
+        push!(filters, "parallax <= $max_plx")
+    end
+    
+    push!(filters, "phot_g_mean_mag >= $(m.ming)")
+    push!(filters, "phot_g_mean_mag <= $(m.maxg)")
+
+    where_clause = join(filters, " AND ")
+    
     query = """
     SELECT * FROM gaia_source 
-    WHERE (source_id >> 49) IN ($pixels_str)
+    WHERE $where_clause
     """
 
     result = execute(conn, query)

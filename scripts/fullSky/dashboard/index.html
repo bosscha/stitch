@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gaia DR3 Clustering All-Sky Pipeline Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-base: #060913;
+            --bg-card: rgba(13, 20, 38, 0.5);
+            --border-card: rgba(255, 255, 255, 0.06);
+            --border-card-hover: rgba(6, 182, 212, 0.3);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --cyan: #06b6d4;
+            --indigo: #6366f1;
+            --emerald: #10b981;
+            --rose: #f43f5e;
+            --glow-cyan: rgba(6, 182, 212, 0.15);
+            --glow-indigo: rgba(99, 102, 241, 0.15);
+            --glow-emerald: rgba(16, 185, 129, 0.15);
+            --font-display: 'Outfit', sans-serif;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
+        }
+
+        header {
+            padding: 2rem 4rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-card);
+            background: rgba(6, 9, 19, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title h1 {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 30%, var(--cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            font-weight: 400;
+        }
+
+        .db-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-card);
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .db-badge .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--rose);
+            box-shadow: 0 0 8px var(--rose);
+            transition: all 0.3s ease;
+        }
+
+        .db-badge.connected .status-dot {
+            background-color: var(--emerald);
+            box-shadow: 0 0 8px var(--emerald);
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 4rem 4rem;
+            display: grid;
+            gap: 2rem;
+        }
+
+        /* KPI Section */
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-card);
+            padding: 1.5rem;
+            border-radius: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, transparent);
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card.cyan::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+        .kpi-card.indigo::before { background: linear-gradient(90deg, var(--indigo), transparent); }
+        .kpi-card.emerald::before { background: linear-gradient(90deg, var(--emerald), transparent); }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-card-hover);
+        }
+
+        .kpi-card.cyan:hover { box-shadow: 0 12px 30px var(--glow-cyan); }
+        .kpi-card.indigo:hover { box-shadow: 0 12px 30px var(--glow-indigo); }
+        .kpi-card.emerald:hover { box-shadow: 0 12px 30px var(--glow-emerald); }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .kpi-subtext {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 999px;
+            margin-top: 0.75rem;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--cyan), var(--indigo));
+            transition: width 1s ease-out;
+        }
+
+        /* Charts Section */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .chart-title {
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-title span.badge {
+            font-family: var(--font-sans);
+            font-size: 0.7rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-card);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            flex-grow: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Catalog Section */
+        .catalog-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            gap: 1rem;
+        }
+
+        .search-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-card);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 0.85rem;
+            width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-card);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        thead {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--border-card);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        th, td {
+            padding: 1rem 1.25rem;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            transition: all 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .badge-uuid {
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            color: var(--cyan);
+        }
+
+        .badge-stars {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--emerald);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge-tails {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--indigo);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .badge-qc {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>Gaia DR3 Clustering Pipeline</h1>
+            <p>Observability & Diagnostic Dashboard</p>
+        </div>
+        <div class="db-badge" id="dbStatusBadge">
+            <div class="status-dot"></div>
+            <span id="dbStatusText">Connecting Database...</span>
+        </div>
+    </header>
+
+    <main>
+        <!-- KPI Cards -->
+        <section class="kpi-container">
+            <div class="kpi-card cyan">
+                <div>
+                    <div class="kpi-label">Processed Pixels</div>
+                    <div class="kpi-value" id="kpiProcessedPixels">-</div>
+                    <div class="kpi-subtext" id="kpiPixelSubtext">Loading Sky Grid...</div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="pixelProgressBar"></div>
+                </div>
+            </div>
+
+            <div class="kpi-card indigo">
+                <div>
+                    <div class="kpi-label">Detected Candidates</div>
+                    <div class="kpi-value" id="kpiTotalClusters">-</div>
+                    <div class="kpi-subtext">Open Cluster core candidates found</div>
+                </div>
+            </div>
+
+            <div class="kpi-card emerald">
+                <div>
+                    <div class="kpi-label">Tracked Stars</div>
+                    <div class="kpi-value" id="kpiTotalStars">-</div>
+                    <div class="kpi-subtext">Total stellar members cataloged</div>
+                </div>
+            </div>
+
+            <div class="kpi-card cyan">
+                <div>
+                    <div class="kpi-label">Avg. Cluster Size</div>
+                    <div class="kpi-value" id="kpiAvgClusterSize">-</div>
+                    <div class="kpi-subtext">Median stars per detected candidate</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Grid -->
+        <section class="dashboard-grid">
+            <!-- Sky Scatter Coordinates Map -->
+            <div class="chart-card">
+                <div class="chart-title">
+                    <span>All-Sky Cluster Map</span>
+                    <span class="badge">RA vs Dec</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="skyMapChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Size Distribution Chart -->
+            <div class="chart-card">
+                <div class="chart-title">
+                    <span>Cluster Populations</span>
+                    <span class="badge">Size Histogram</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="sizeDistChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- New Charts Row: Dispersions -->
+        <section class="dashboard-grid">
+            <!-- Velocity Dispersion Chart -->
+            <div class="chart-card">
+                <div class="chart-title">
+                    <span>Velocity Dispersion Distribution</span>
+                    <span class="badge">Population Histograms (km/s)</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="velDispChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Spatial Dispersion Chart -->
+            <div class="chart-card">
+                <div class="chart-title">
+                    <span>Spatial Dispersion Distribution</span>
+                    <span class="badge">Population Histograms (pc)</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="spatialDispChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cluster Catalog Table -->
+        <section class="catalog-card">
+            <div class="chart-title">
+                <span>Stellar Cluster Catalog</span>
+            </div>
+            <div class="table-controls">
+                <input type="text" id="tableSearch" class="search-box" placeholder="Search clusters by ID, votname...">
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cluster UUID</th>
+                            <th>Source Block</th>
+                            <th>Detection Timestamp</th>
+                            <th>Stars (Core)</th>
+                            <th>Tails</th>
+                            <th>Sky (RA, Dec)</th>
+                            <th>Galactic (l, b)</th>
+                            <th>Vel (v<sub>l</sub>, v<sub>b</sub>)</th>
+                            <th>Vel Disp (&sigma;<sub>vl,vb</sub>)</th>
+                            <th>Spatial Disp (&sigma;<sub>x,y,z</sub>)</th>
+                            <th>Dist (pc)</th>
+                            <th>Age (Myr)</th>
+                            <th>Qc Contrast</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogTableBody">
+                        <tr>
+                            <td colspan="13" style="text-align: center; color: var(--text-secondary);">Querying database records...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let skyMapChartInstance = null;
+        let sizeDistChartInstance = null;
+        let velDispChartInstance = null;
+        let spatialDispChartInstance = null;
+        let clusterDataRaw = [];
+
+        async function fetchDashboardData() {
+            try {
+                // 1. Fetch Stats
+                const statsRes = await fetch('/api/stats');
+                const statsJson = await statsRes.json();
+                
+                // Update DB connection indicator
+                const dbBadge = document.getElementById('dbStatusBadge');
+                const dbText = document.getElementById('dbStatusText');
+                if (statsJson.db_connected) {
+                    dbBadge.classList.add('connected');
+                    dbText.textContent = `Connected (gaiadb)`;
+                } else {
+                    dbBadge.classList.remove('connected');
+                    dbText.textContent = `Offline (Using Fallback)`;
+                }
+
+                const stats = statsJson.data;
+                document.getElementById('kpiProcessedPixels').textContent = stats.processed_pixels;
+                document.getElementById('kpiPixelSubtext').textContent = `Out of ${stats.total_pixels_grid} HEALPix Lvl 5 blocks`;
+                document.getElementById('kpiTotalClusters').textContent = stats.total_clusters;
+                document.getElementById('kpiTotalStars').textContent = Number(stats.total_stars).toLocaleString();
+                document.getElementById('kpiAvgClusterSize').textContent = stats.avg_cluster_size;
+
+                // Update progress bar
+                const pct = (stats.processed_pixels / stats.total_pixels_grid) * 100;
+                document.getElementById('pixelProgressBar').style.width = `${Math.max(0.1, pct)}%`;
+
+                // 2. Fetch Clusters
+                const clustersRes = await fetch('/api/clusters');
+                const clustersJson = await clustersRes.json();
+                clusterDataRaw = clustersJson.data || [];
+
+                renderCatalogTable(clusterDataRaw);
+                renderSkyMap(clusterDataRaw);
+                renderSizeDistribution(clusterDataRaw);
+                renderVelocityDispersion(clusterDataRaw);
+                renderSpatialDispersion(clusterDataRaw);
+
+            } catch (err) {
+                console.error("Dashboard refresh error: ", err);
+            }
+        }
+
+        function renderCatalogTable(clusters) {
+            const tbody = document.getElementById('catalogTableBody');
+            if (clusters.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: var(--text-secondary);">No cluster detections in database.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = '';
+            clusters.forEach(c => {
+                const shortUuid = c.cluster_id ? c.cluster_id.substring(0, 8) : 'unknown';
+                const formattedAge = c.age && c.age > 0 ? Math.round(10**c.age / 1e6) : '-';
+                const formattedFeh = c.feh !== null ? c.feh.toFixed(2) : '-';
+                
+                const formattedSky = `${c.ra ? c.ra.toFixed(2) : '-'}° / ${c.dec ? c.dec.toFixed(2) : '-'}°`;
+                const formattedGal = `${c.l ? c.l.toFixed(2) : '-'}° / ${c.b ? c.b.toFixed(2) : '-'}°`;
+                const formattedVel = `${c.vl ? c.vl.toFixed(1) : '-'} / ${c.vb ? c.vb.toFixed(1) : '-'} <span style="font-size:0.75rem; color:var(--text-secondary);">km/s</span>`;
+                const formattedVelDisp = `${c.vldisp ? c.vldisp.toFixed(2) : '-'} / ${c.vbdisp ? c.vbdisp.toFixed(2) : '-'} <span style="font-size:0.75rem; color:var(--text-secondary);">km/s</span>`;
+                const formattedSpatialDisp = `${c.xdisp ? c.xdisp.toFixed(1) : '-'} / ${c.ydisp ? c.ydisp.toFixed(1) : '-'} / ${c.zdisp ? c.zdisp.toFixed(1) : '-'} <span style="font-size:0.75rem; color:var(--text-secondary);">pc</span>`;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="badge-uuid" title="${c.cluster_id}">${shortUuid}</span></td>
+                    <td style="font-weight: 500;">${c.votname || '-'}</td>
+                    <td style="color: var(--text-secondary);">${c.datetime || '-'}</td>
+                    <td><span class="badge-stars">${c.nstars || 0}</span></td>
+                    <td><span class="badge-tails">${c.ntail || 0}</span></td>
+                    <td>${formattedSky}</td>
+                    <td>${formattedGal}</td>
+                    <td>${formattedVel}</td>
+                    <td>${formattedVelDisp}</td>
+                    <td>${formattedSpatialDisp}</td>
+                    <td>${c.distance ? Math.round(c.distance) : '-'}</td>
+                    <td>${formattedAge}</td>
+                    <td><span class="badge-qc">${c.qc ? c.qc.toFixed(2) : '-'}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderSkyMap(clusters) {
+            const ctx = document.getElementById('skyMapChart').getContext('2d');
+            
+            // Build dataset
+            const points = clusters.map(c => ({
+                x: c.ra,
+                y: c.dec,
+                label: c.votname,
+                stars: c.nstars
+            }));
+
+            if (skyMapChartInstance) {
+                skyMapChartInstance.destroy();
+            }
+
+            skyMapChartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Cluster Centroids',
+                        data: points,
+                        backgroundColor: 'rgba(6, 182, 212, 0.8)',
+                        borderColor: '#06b6d4',
+                        borderWidth: 1,
+                        pointRadius: 6,
+                        pointHoverRadius: 9
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Right Ascension (RA deg)', color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Declination (Dec deg)', color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const raw = context.raw;
+                                    return `${raw.label || 'Cluster'}: RA=${raw.x.toFixed(2)}, Dec=${raw.y.toFixed(2)} (${raw.stars} stars)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderSizeDistribution(clusters) {
+            const ctx = document.getElementById('sizeDistChart').getContext('2d');
+            
+            // Put clusters in size buckets
+            const buckets = { "0-50": 0, "51-200": 0, "201-1000": 0, "1000+": 0 };
+            clusters.forEach(c => {
+                const s = c.nstars || 0;
+                if (s <= 50) buckets["0-50"]++;
+                else if (s <= 200) buckets["51-200"]++;
+                else if (s <= 1000) buckets["201-1000"]++;
+                else buckets["1000+"]++;
+            });
+
+            if (sizeDistChartInstance) {
+                sizeDistChartInstance.destroy();
+            }
+
+            sizeDistChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(buckets),
+                    datasets: [{
+                        data: Object.values(buckets),
+                        backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                        borderColor: '#6366f1',
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Cluster Population Range', color: '#94a3b8' },
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Cluster Count', color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#94a3b8', stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        function generateDynamicBins(values, numBins = 6, forceMin = null, forceMax = null) {
+            const valid = values.filter(v => v !== null && v !== undefined && v > 0);
+            if (valid.length === 0 && forceMin === null && forceMax === null) return [];
+            
+            const min = forceMin !== null ? forceMin : Math.min(...valid);
+            const max = forceMax !== null ? forceMax : Math.max(...valid);
+            
+            // Generate equal-width bins between min and max
+            const range = max - min;
+            const step = range / numBins;
+            
+            const bins = [];
+            for (let i = 0; i < numBins; i++) {
+                const bMin = min + i * step;
+                const bMax = min + (i + 1) * step;
+                
+                // Format the label neatly
+                const label = `${bMin.toFixed(1)}–${bMax.toFixed(1)}`;
+                bins.push({
+                    label: label,
+                    min: bMin,
+                    max: bMax
+                });
+            }
+            return bins;
+        }
+
+        function renderVelocityDispersion(clusters) {
+            const ctx = document.getElementById('velDispChart').getContext('2d');
+
+            // Gather all non-zero velocity dispersion values to generate a unified X-axis
+            const allVels = [];
+            clusters.forEach(c => {
+                if (c.vldisp > 0) allVels.push(c.vldisp);
+                if (c.vbdisp > 0) allVels.push(c.vbdisp);
+            });
+
+            const bins = generateDynamicBins(allVels, 6, 0.5, 1.5);
+            const vlCounts = new Array(bins.length).fill(0);
+            const vbCounts = new Array(bins.length).fill(0);
+
+            if (bins.length > 0) {
+                clusters.forEach(c => {
+                    const vl = c.vldisp;
+                    const vb = c.vbdisp;
+
+                    if (vl !== null && vl !== undefined && vl > 0) {
+                        const idx = bins.findIndex(b => vl >= b.min && vl <= b.max);
+                        if (idx !== -1) vlCounts[idx]++;
+                    }
+                    if (vb !== null && vb !== undefined && vb > 0) {
+                        const idx = bins.findIndex(b => vb >= b.min && vb <= b.max);
+                        if (idx !== -1) vbCounts[idx]++;
+                    }
+                });
+            }
+
+            if (velDispChartInstance) {
+                velDispChartInstance.destroy();
+            }
+
+            velDispChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: bins.map(b => b.label),
+                    datasets: [
+                        {
+                            label: 'σ_vl (Longitudinal)',
+                            data: vlCounts,
+                            backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                            borderColor: '#06b6d4',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'σ_vb (Latitudinal)',
+                            data: vbCounts,
+                            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                            borderColor: '#6366f1',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Velocity Dispersion (km/s)', color: '#94a3b8' },
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Cluster Count', color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#94a3b8', stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, labels: { color: '#f8fafc' } }
+                    }
+                }
+            });
+        }
+
+        function renderSpatialDispersion(clusters) {
+            const ctx = document.getElementById('spatialDispChart').getContext('2d');
+
+            // Gather all non-zero spatial dispersion values to generate a unified X-axis
+            const allSpatials = [];
+            clusters.forEach(c => {
+                if (c.ydisp > 0) allSpatials.push(c.ydisp);
+                if (c.zdisp > 0) allSpatials.push(c.zdisp);
+            });
+
+            const bins = generateDynamicBins(allSpatials, 6, 0.0, 10.0);
+            const yCounts = new Array(bins.length).fill(0);
+            const zCounts = new Array(bins.length).fill(0);
+
+            if (bins.length > 0) {
+                clusters.forEach(c => {
+                    const y = c.ydisp;
+                    const z = c.zdisp;
+
+                    if (y !== null && y !== undefined && y >= 0.0) {
+                        const idx = bins.findIndex(b => y >= b.min && y <= b.max);
+                        if (idx !== -1) yCounts[idx]++;
+                    }
+                    if (z !== null && z !== undefined && z >= 0.0) {
+                        const idx = bins.findIndex(b => z >= b.min && z <= b.max);
+                        if (idx !== -1) zCounts[idx]++;
+                    }
+                });
+            }
+
+            if (spatialDispChartInstance) {
+                spatialDispChartInstance.destroy();
+            }
+
+            spatialDispChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: bins.map(b => b.label),
+                    datasets: [
+                        {
+                            label: 'σ_y',
+                            data: yCounts,
+                            backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                            borderColor: '#06b6d4',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'σ_z',
+                            data: zCounts,
+                            backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                            borderColor: '#6366f1',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Spatial Dispersion (pc)', color: '#94a3b8' },
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        y: {
+                            title: { display: true, text: 'Cluster Count', color: '#94a3b8' },
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#94a3b8', stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, labels: { color: '#f8fafc' } }
+                    }
+                }
+            });
+        }
+
+        // Live Table Search
+        document.getElementById('tableSearch').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase();
+            const filtered = clusterDataRaw.filter(c => 
+                (c.cluster_id && c.cluster_id.toLowerCase().includes(q)) ||
+                (c.votname && c.votname.toLowerCase().includes(q))
+            );
+            renderCatalogTable(filtered);
+        });
+
+        // Initialize and refresh dashboard every 30 seconds
+        fetchDashboardData();
+        setInterval(fetchDashboardData, 30000);
+    </script>
+</body>
+</html>
