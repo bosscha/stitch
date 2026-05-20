@@ -342,6 +342,22 @@
             font-weight: 600;
             color: var(--text-primary);
         }
+
+        .badge-entropy {
+            background: rgba(245, 158, 11, 0.1); /* Amber/Orange */
+            color: #fbbf24;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge-distance {
+            background: rgba(253, 224, 71, 0.15); /* Slightly stronger gold/yellow background tint */
+            color: #facc15; /* Vibrant Yellow-400 */
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -471,11 +487,12 @@
                             <th>Dist (pc)</th>
                             <th>Age (Myr)</th>
                             <th>Qc Contrast</th>
+                            <th>Core Entropy</th>
                         </tr>
                     </thead>
                     <tbody id="catalogTableBody">
                         <tr>
-                            <td colspan="13" style="text-align: center; color: var(--text-secondary);">Querying database records...</td>
+                            <td colspan="14" style="text-align: center; color: var(--text-secondary);">Querying database records...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -537,15 +554,16 @@
         function renderCatalogTable(clusters) {
             const tbody = document.getElementById('catalogTableBody');
             if (clusters.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: var(--text-secondary);">No cluster detections in database.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="14" style="text-align: center; color: var(--text-secondary);">No cluster detections in database.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = '';
             clusters.forEach(c => {
                 const shortUuid = c.cluster_id ? c.cluster_id.substring(0, 8) : 'unknown';
-                const formattedAge = c.age && c.age > 0 ? Math.round(10**c.age / 1e6) : '-';
+                const formattedAge = c.age && c.age > 0 ? Math.round(c.age) : '-';
                 const formattedFeh = c.feh !== null ? c.feh.toFixed(2) : '-';
+                const formattedEntropy = c.entropy_core !== null && c.entropy_core !== undefined && !isNaN(c.entropy_core) ? c.entropy_core.toFixed(2) : '-';
                 
                 const formattedSky = `${c.ra ? c.ra.toFixed(2) : '-'}° / ${c.dec ? c.dec.toFixed(2) : '-'}°`;
                 const formattedGal = `${c.l ? c.l.toFixed(2) : '-'}° / ${c.b ? c.b.toFixed(2) : '-'}°`;
@@ -565,9 +583,10 @@
                     <td>${formattedVel}</td>
                     <td>${formattedVelDisp}</td>
                     <td>${formattedSpatialDisp}</td>
-                    <td>${c.distance ? Math.round(c.distance) : '-'}</td>
+                    <td><span class="badge-distance">${c.distance ? Math.round(c.distance) : '-'}</span></td>
                     <td>${formattedAge}</td>
                     <td><span class="badge-qc">${c.qc ? c.qc.toFixed(2) : '-'}</span></td>
+                    <td><span class="badge-entropy">${formattedEntropy}</span></td>
                 `;
                 tbody.appendChild(row);
             });

@@ -125,14 +125,14 @@ async def api_clusters(request):
 
             cur.execute("""
                 SELECT cluster_id, votname, datetime, nstars, ntail, ra, dec, distance, age, feh, qc,
-                       l, b, vl, vb, vldisp, vbdisp, xdisp, ydisp, zdisp
+                       l, b, vl, vb, vldisp, vbdisp, xdisp, ydisp, zdisp, entropy_core
                 FROM clusters_metadata
                 ORDER BY datetime DESC;
             """)
             rows = cur.fetchall()
             # Convert float fields to float
             for row in rows:
-                for key in ["ra", "dec", "distance", "age", "feh", "qc", "l", "b", "vl", "vb", "vldisp", "vbdisp", "xdisp", "ydisp", "zdisp"]:
+                for key in ["ra", "dec", "distance", "age", "feh", "qc", "l", "b", "vl", "vb", "vldisp", "vbdisp", "xdisp", "ydisp", "zdisp", "entropy_core"]:
                     if row.get(key) is not None:
                         row[key] = float(row[key])
         conn.close()

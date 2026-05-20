@@ -18,6 +18,7 @@ dbuser          = "postgres"
 dbpass          = "tallis"       
 dbname          = "gaiadb"       
 dbtable         = "clusters"     
+nbatch          = 4              ## number of simultaneous batches (pixels) to process
 
 # Define the absolute minimum/maximum bounds to fetch from PostgreSQL
 mindist         = 0.0            ## minimum distance to filter stars in pc

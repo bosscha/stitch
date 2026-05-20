@@ -13,7 +13,8 @@ read -p "Are you sure you want to proceed? (y/N): " confirm
 if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
     echo "Clearing tables in database '$DB_NAME' on $DB_HOST..."
     
-    # This will prompt you for the password (e.g., tallis)
+    # Set the password for psql
+    export PGPASSWORD="tallis"
     psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "TRUNCATE TABLE clusters; TRUNCATE TABLE clusters_metadata; TRUNCATE TABLE clusters_processed_pixels;"
     
     if [ $? -eq 0 ]; then

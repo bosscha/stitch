@@ -8,6 +8,16 @@ module GaiaClustering
 
 using DataFrames, Formatting, Printf, Dates, DelimitedFiles
 
+function println(xs...)
+    P = get(task_local_storage(), :pix, nothing)
+    if P !== nothing
+        Base.println(xs..., " (pix ", P, ")")
+    else
+        Base.println(xs...)
+    end
+end
+
+
 using Clustering
 using Statistics, Distributions, Random, UUIDs
 using Distances, LightGraphs, SimpleWeightedGraphs, NearestNeighbors

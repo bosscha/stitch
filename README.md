@@ -8,3 +8,30 @@ The current version is working with Gaia DR3 data.
 A postgresql backend is added to deal locally with Gaia sources for the full sky analysis 
 
 **Documentation and information** can be found in the [wiki pages](https://github.com/bosscha/gaia-shock/wiki).
+
+## Running Full Sky Analysis (`build_hp.jl`)
+
+To run the full-sky clustering extraction using HEALPix indexing, use the `build_hp.jl` script. It takes a configuration file (in TOML format) as an argument.
+
+### Example Usage
+```bash
+julia scripts/fullSky/build_hp.jl fullsky.bld
+```
+
+### Configuration
+The pipeline relies on parameter files (`.ext`) referenced inside your TOML configuration file (e.g., `template/optimal_galaxy.ext`). 
+
+#### Batch Processing Mode
+You can speed up the extraction process by analyzing multiple HEALPix pixels simultaneously. To do this, edit your `.ext` file and set the `nbatch` parameter to your desired concurrency level:
+```text
+nbatch = 4      ## number of simultaneous batches (pixels) to process
+```
+
+#### Lock File Management
+The script utilizes an `active_pixels.lock` file in the working directory to track which pixels are currently being processed across all processes. This robust PID-based locking mechanism safely allows you to run multiple instances of the script simultaneously, and ensures no duplicate work is performed. 
+
+If you interrupt the script via `Ctrl-C`, your terminal might suspend the background processes rather than killing them. To completely terminate all running or suspended instances, use the provided helper script:
+```bash
+./kill_build_hp.sh
+```
+The pipeline will automatically identify dead PIDs and clean up any stale locks the next time you start it.

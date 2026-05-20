@@ -36,6 +36,7 @@ function set_default_params()::meta
     def.dbpass          = ""
     def.dbname          = "gaiadb"
     def.dbtable         = "clusters"
+    def.nbatch          = 1
 
     # if optim no
     def.w3d             = 7.0               ## w3d weighting
@@ -173,6 +174,7 @@ function set_param!(def, parstr,value)
     if parstr == "dbpass" def.dbpass= value end
     if parstr == "dbname" def.dbname= value end
     if parstr == "dbtable" def.dbtable= value end
+    if parstr == "nbatch" def.nbatch= value end
     if parstr == "w3d" def.w3d= value end
     if parstr == "wvel" def.wvel= value end
     if parstr == "whrd" def.whrd= value end

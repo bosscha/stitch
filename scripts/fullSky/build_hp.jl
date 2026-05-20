@@ -88,38 +88,81 @@ function fullSky(meta)
 
     println("## Total HEALPix Level 5 pixels: $npix")
 
-    for P in 0:(npix-1)
+    nbatch = mextra.nbatch
+    printstyled("## Running with $nbatch simultaneous batches\n", color=:blue)
+
+    file_lock = ReentrantLock()
+    active_lock_file = joinpath(wdir, "active_pixels.lock")
+
+    function process_pixel_inner(P)
         if P in dfp.pix
             println("## Pixel $P already processed. Skipping...")
-            continue
+            return
         end
+
+        lock(file_lock)
+        active_pixels = isfile(active_lock_file) ? readlines(active_lock_file) : String[]
+        my_pid = getpid()
+        
+        valid_locks = String[]
+        for line in active_pixels
+            parts = split(line, ",")
+            if length(parts) == 2
+                locked_P, locked_pid = parts
+                if isdir("/proc/" * locked_pid)
+                    push!(valid_locks, line)
+                else
+                    println("## Removing stale lock for pixel $locked_P (PID $locked_pid is dead)")
+                end
+            end
+        end
+        
+        if any(startswith(l, string(P) * ",") for l in valid_locks)
+            println("## Pixel $P is currently being processed (locked). Skipping...")
+            open(active_lock_file, "w") do f
+                for l in valid_locks
+                    println(f, l)
+                end
+            end
+            unlock(file_lock)
+            return
+        end
+        
+        push!(valid_locks, "$(P),$(my_pid)")
+        open(active_lock_file, "w") do f
+            for l in valid_locks
+                println(f, l)
+            end
+        end
+        unlock(file_lock)
 
         println("=====================================================")
         println("## Processing central pixel: $P")
 
-        
         neighbors = healpy.get_all_neighbours(nside, P, nest=true)
         # Filter out -1 which indicates missing neighbor (e.g. at corners, though nside=32 has neighbors)
         valid_neighbors = filter(x -> x != -1, neighbors)
         target_pixels = vcat([P], valid_neighbors)
 
-        mextra.votname = "HP5_$P"
+        mextra_local = deepcopy(mextra)
+        mextra_local.votname = "HP5_$P"
+
+        pwd_arg = (mextra_local.dbpass != "") ? "password=$(mextra_local.dbpass)" : ""
+        conn_str = "host=$(mextra_local.dbhost) user=$(mextra_local.dbuser) dbname=$(mextra_local.dbname) $pwd_arg"
 
         try
-            df, dfcart, dfcartnorm = get_data_pg(mextra, target_pixels)
-            extra_db(mextra, optim, df, dfcart, dfcartnorm)
+            df, dfcart, dfcartnorm = get_data_pg(mextra_local, target_pixels)
+            extra_db(mextra_local, optim, df, dfcart, dfcartnorm)
             
             # --- Cleanup out-of-bounds clusters ---
             # Any cluster saved to the DB must have its center within the central pixel P.
             # If not, we remove it from the DB.
-            if mextra.savedb == "yes"
-                pwd_arg = (mextra.dbpass != "") ? "password=$(mextra.dbpass)" : ""
-                conn_str = "host=$(mextra.dbhost) user=$(mextra.dbuser) dbname=$(mextra.dbname) $pwd_arg"
-                conn = LibPQ.Connection(conn_str)
+            if mextra_local.savedb == "yes"
+                conn_local = LibPQ.Connection(conn_str)
                 
                 # Fetch clusters from this votname
-                query = "SELECT cluster_id, ra, dec FROM $(mextra.dbtable)_metadata WHERE votname = \$1;"
-                res = execute(conn, query, [mextra.votname])
+                query = "SELECT cluster_id, ra, dec FROM $(mextra_local.dbtable)_metadata WHERE votname = \$1;"
+                res = execute(conn_local, query, [mextra_local.votname])
                 df_clusters = DataFrame(res)
                 
                 for row in eachrow(df_clusters)
@@ -127,41 +170,72 @@ function fullSky(meta)
                     cpix = healpy.ang2pix(nside, row.ra, row.dec, nest=true, lonlat=true)
                     if cpix != P
                         println("## Cleanup: Cluster $(row.cluster_id) is centered in pixel $cpix instead of $P. Deleting from DB...")
-                        execute(conn, "DELETE FROM $(mextra.dbtable) WHERE cluster_id = \$1;", [row.cluster_id])
-                        execute(conn, "DELETE FROM $(mextra.dbtable)_metadata WHERE cluster_id = \$1;", [row.cluster_id])
+                        execute(conn_local, "DELETE FROM $(mextra_local.dbtable) WHERE cluster_id = \$1;", [row.cluster_id])
+                        execute(conn_local, "DELETE FROM $(mextra_local.dbtable)_metadata WHERE cluster_id = \$1;", [row.cluster_id])
                     else
                         println("## Cluster $(row.cluster_id) confirmed in central pixel $P.")
                     end
                 end
-                close(conn)
+                close(conn_local)
             end
             
             # Save progress
-            push!(dfp, [P])
-            conn = LibPQ.Connection(conn_str)
-            execute(conn, "INSERT INTO $progress_table (pix, datetime) VALUES (\$1, \$2) ON CONFLICT (pix) DO UPDATE SET datetime = EXCLUDED.datetime;", [P, Dates.format(now(), "yyyy-mm-dd HH:MM:SS")])
-            close(conn)
+            conn_local2 = LibPQ.Connection(conn_str)
+            execute(conn_local2, "INSERT INTO $progress_table (pix, datetime) VALUES (\$1, \$2) ON CONFLICT (pix) DO UPDATE SET datetime = EXCLUDED.datetime;", [P, Dates.format(now(), "yyyy-mm-dd HH:MM:SS")])
+            close(conn_local2)
             
             # Update progress plot after saving
+            lock(file_lock)
+            push!(dfp, [P])
             plot_hp_sky(dfp.pix, nside, figname="allsky_progress.png")
+            unlock(file_lock)
             
         catch e
             println("## Error processing pixel $P : $e")
             if isa(e, ErrorException) && occursin("No data found", e.msg)
                 println("## No stars fetched for $P, recording as done.")
-                push!(dfp, [P])
-                conn = LibPQ.Connection(conn_str)
-                execute(conn, "INSERT INTO $progress_table (pix, datetime) VALUES (\$1, \$2) ON CONFLICT (pix) DO UPDATE SET datetime = EXCLUDED.datetime;", [P, Dates.format(now(), "yyyy-mm-dd HH:MM:SS")])
-                close(conn)
+                conn_local2 = LibPQ.Connection(conn_str)
+                execute(conn_local2, "INSERT INTO $progress_table (pix, datetime) VALUES (\$1, \$2) ON CONFLICT (pix) DO UPDATE SET datetime = EXCLUDED.datetime;", [P, Dates.format(now(), "yyyy-mm-dd HH:MM:SS")])
+                close(conn_local2)
                 
                 # Update progress plot after saving
+                lock(file_lock)
+                push!(dfp, [P])
                 plot_hp_sky(dfp.pix, nside, figname="allsky_progress.png")
+                unlock(file_lock)
             else
                 println("## Unexpected error. Resuming on next run might retry this pixel.")
                 # Depending on how the user wants to handle db drops, we may want to break or continue.
                 # Continuing allows robustness against random failure of a specific pixel
                 # break
             end
+        finally
+            lock(file_lock)
+            if isfile(active_lock_file)
+                active_pixels = readlines(active_lock_file)
+                open(active_lock_file, "w") do f
+                    for l in active_pixels
+                        if !startswith(l, string(P) * ",") && l != string(P)
+                            println(f, l)
+                        end
+                    end
+                end
+            end
+            unlock(file_lock)
+        end
+    end
+
+    function process_pixel(P)
+        task_local_storage(:pix, P) do
+            process_pixel_inner(P)
+        end
+    end
+
+    if nbatch > 1
+        asyncmap(process_pixel, 0:(npix-1); ntasks=nbatch)
+    else
+        for P in 0:(npix-1)
+            process_pixel(P)
         end
     end
     

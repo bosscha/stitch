@@ -185,6 +185,7 @@ mutable struct meta
     dbpass::String
     dbname::String
     dbtable::String
+    nbatch::Int
     w3d::Float64
     wvel::Float64
     whrd::Float64
