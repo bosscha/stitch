@@ -412,6 +412,12 @@ let
     println("############################")
     println("### Building Gaia results...")
 
+    if isempty(ARGS)
+        println(stderr, "ERROR: Missing configuration file argument.")
+        println(stderr, "Usage: julia scripts/build.jl <config_file.bld>")
+        exit(1)
+    end
+
     metabuild = TOML.parsefile(ARGS[1])
 
     key = collect(keys(metabuild))

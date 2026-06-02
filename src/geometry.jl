@@ -127,7 +127,8 @@ function voronoi(pts, verbose = false)
     push!(v_pts, VoronoiCells.IndexablePoint2D(1.99, 1.99, ndat + 4))
 
     # Run the tessellation 
-    tess = voronoicells(v_pts)
+    rect = VoronoiCells.Rectangle(VoronoiCells.IndexablePoint2D(1.0, 1.0, 0), VoronoiCells.IndexablePoint2D(2.0, 2.0, 0))
+    tess = voronoicells(v_pts, rect)
     
     # Compute scaled areas (This will no longer crash!)
     all_scaled_areas = voronoiarea(tess)

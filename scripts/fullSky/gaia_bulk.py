@@ -10,7 +10,12 @@ import sys
 # --- CONFIGURATION ---
 BASE_URL = "https://cdn.gea.esac.esa.int/Gaia/gdr3/gaia_source/"
 MD5_URL = BASE_URL + "_MD5SUM.txt"
-DB_CONFIG = "dbname=gaiadb user=postgres password=tallis host=localhost"
+
+DB_DBNAME = os.getenv("DB_NAME", "gaiadb")
+DB_USER = os.getenv("DB_USER", "stephane")
+DB_PASS = os.getenv("DB_PASS", "monachil")
+DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
+DB_CONFIG = f"dbname={DB_DBNAME} user={DB_USER} password={DB_PASS} host={DB_HOST}"
 
 # Scientific Threshold
 RUWE_THRESHOLD = 1.4

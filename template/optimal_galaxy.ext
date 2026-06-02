@@ -14,8 +14,8 @@ tail            = "yes"          ## perform 2nd step for extraction (tails)
 
 savedb          = "yes"          ## save cluster stars to PostgreSQL
 dbhost          = "127.0.0.1"    
-dbuser          = "postgres"     
-dbpass          = "tallis"       
+dbuser          = "stephane"     
+dbpass          = "monachil"     
 dbname          = "gaiadb"       
 dbtable         = "clusters"     
 nbatch          = 4              ## number of simultaneous batches (pixels) to process

@@ -31,11 +31,11 @@ function set_default_params()::meta
     def.tail            = "no"              ## yes|no to perform 2nd step extraction for isolated members (radius/velocity/CMD cut)
     def.convg           = "no"              ## yes|no to compute convergence statistics, like Gelman-Rubin
     def.savedb          = "no"              ## yes|no to save oc to postgresql
-    def.dbhost          = "localhost"
-    def.dbuser          = "postgres"
-    def.dbpass          = ""
-    def.dbname          = "gaiadb"
-    def.dbtable         = "clusters"
+    def.dbhost          = get(ENV, "DB_HOST", "127.0.0.1")
+    def.dbuser          = get(ENV, "DB_USER", "stephane")
+    def.dbpass          = get(ENV, "DB_PASS", "monachil")
+    def.dbname          = get(ENV, "DB_NAME", "gaiadb")
+    def.dbtable         = get(ENV, "DB_TABLE", "clusters")
     def.nbatch          = 1
 
     # if optim no
