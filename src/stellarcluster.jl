@@ -166,7 +166,7 @@ end
 function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
     n_samples = size(data, 2)
     if algo == "hdbscan"
-        hd = pyimport("hdbscan")
+        hd = pyimport("fast_hdbscan")
         # HDBSCAN requires min_cluster_size >= 2
         mcl = max(2, mincluster)
         mnei = max(1, minneigh)
