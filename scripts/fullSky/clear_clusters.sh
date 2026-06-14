@@ -14,7 +14,7 @@ if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
     echo "Clearing tables in database '$DB_NAME' on $DB_HOST..."
     
     # Set the password for psql
-    export PGPASSWORD="${DB_PASS:-monachil}"
+    export PGPASSWORD="${DB_PASS:-tallis}"
     psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "TRUNCATE TABLE clusters; TRUNCATE TABLE clusters_metadata; TRUNCATE TABLE clusters_processed_pixels;"
     
     if [ $? -eq 0 ]; then

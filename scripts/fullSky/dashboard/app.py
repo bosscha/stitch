@@ -16,7 +16,7 @@ logger = logging.getLogger("gaia_dashboard")
 # Database Connection details with defaults matching the stitch pipeline
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_USER = os.getenv("DB_USER", "stephane")
-DB_PASS = os.getenv("DB_PASS", "monachil")
+DB_PASS = os.getenv("DB_PASS", "tallis")
 DB_NAME = os.getenv("DB_NAME", "gaiadb")
 
 def get_db_connection():

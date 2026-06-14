@@ -13,7 +13,7 @@ MD5_URL = BASE_URL + "_MD5SUM.txt"
 
 DB_DBNAME = os.getenv("DB_NAME", "gaiadb")
 DB_USER = os.getenv("DB_USER", "stephane")
-DB_PASS = os.getenv("DB_PASS", "monachil")
+DB_PASS = os.getenv("DB_PASS", "tallis")
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_CONFIG = f"dbname={DB_DBNAME} user={DB_USER} password={DB_PASS} host={DB_HOST}"
 

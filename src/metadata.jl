@@ -33,7 +33,7 @@ function set_default_params()::meta
     def.savedb          = "no"              ## yes|no to save oc to postgresql
     def.dbhost          = get(ENV, "DB_HOST", "127.0.0.1")
     def.dbuser          = get(ENV, "DB_USER", "stephane")
-    def.dbpass          = get(ENV, "DB_PASS", "monachil")
+    def.dbpass          = get(ENV, "DB_PASS", "tallis")
     def.dbname          = get(ENV, "DB_NAME", "gaiadb")
     def.dbtable         = get(ENV, "DB_TABLE", "clusters")
     def.nbatch          = 1

@@ -8,8 +8,8 @@ import time
 # 1. Simulation Constants
 N_STARS = 1000
 G = 1.0          # Astrophysical units
-DT = 0.01        # Time step
-STEPS = 5000      # Number of integration steps
+DT = 0.001        # Time step
+STEPS = 50000      # Number of integration steps
 SOFTENING = 0.05 # Prevent numerical infinities during close encounters
 
 # Salpeter IMF Constants
@@ -51,6 +51,7 @@ L_UNIT = 1.0 # Assuming positions are in parsecs
 time_to_myr = np.sqrt((L_UNIT**3) / (G_PHYS * total_mass.item()))
 
 print(f"IMF Generated on GPU.")
+print(f"➔ Total initial mass: {total_mass.item():.2f} M_sun")
 print(f"➔ Heaviest Star relative mass: {torch.max(mass_gpu).item():.5f}")
 print(f"➔ Lightest Star relative mass: {torch.min(mass_gpu).item():.5f}")
 print(f"➔ Time Conversion: 1 N-body time unit = {time_to_myr:.4f} Myr")
