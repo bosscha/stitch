@@ -189,6 +189,111 @@ function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
             end
         end
         return label, probabilities_
+    elseif algo == "gpu-dbscan"
+        # Convert data to Float32 and upload to GPU
+        g_data = ROCMatrix{Float32}(data)
+        
+        # Compute norms of columns: 1 x N
+        norms2 = sum(g_data .^ 2, dims=1)
+        
+        # Chunk size to prevent VRAM exhaustion on large datasets
+        chunk_size = 5000
+        
+        h_is_core = zeros(Bool, 1, n_samples)
+        neighbors_list = [Int[] for _ in 1:n_samples]
+        
+        for c_start in 1:chunk_size:n_samples
+            c_end = min(c_start + chunk_size - 1, n_samples)
+            c_len = c_end - c_start + 1
+            
+            # Slice GPU matrices for the current chunk
+            g_data_chunk = g_data[:, c_start:c_end]
+            norms2_chunk = norms2[:, c_start:c_end]
+            
+            # Pairwise dot products for the chunk: N x C
+            dot_products_chunk = LinearAlgebra.transpose(g_data) * g_data_chunk
+            
+            # Pairwise squared distances for the chunk: N x C
+            dists2_chunk = norms2' .+ norms2_chunk .- 2f0 .* dot_products_chunk
+            
+            # Find neighbors within epsilon in the chunk: N x C
+            is_neighbor_chunk = dists2_chunk .<= Float32(epsilon^2)
+            
+            # Count neighbors for each point in the chunk: 1 x C
+            neighbor_counts_chunk = sum(is_neighbor_chunk, dims=1)
+            
+            # Core points in the chunk
+            is_core_chunk = neighbor_counts_chunk .>= minneigh
+            
+            # Copy chunk results to CPU
+            h_is_neighbor_chunk = Array(is_neighbor_chunk) # N x C Bool matrix
+            h_is_core_chunk = Array(is_core_chunk)         # 1 x C Bool matrix
+            
+            # Store core flags
+            h_is_core[1, c_start:c_end] .= h_is_core_chunk[1, :]
+            
+            # Populate sparse neighbor list on CPU
+            for col in 1:c_len
+                point_idx = c_start + col - 1
+                @inbounds for row in 1:n_samples
+                    if h_is_neighbor_chunk[row, col]
+                        push!(neighbors_list[point_idx], row)
+                    end
+                end
+            end
+            
+            # Clear chunk variables to free VRAM immediately
+            dists2_chunk = nothing
+            is_neighbor_chunk = nothing
+            dot_products_chunk = nothing
+            g_data_chunk = nothing
+            norms2_chunk = nothing
+            neighbor_counts_chunk = nothing
+            is_core_chunk = nothing
+        end
+        
+        # Free main GPU matrices
+        g_data = nothing
+        norms2 = nothing
+        GC.gc()
+        
+        # Run BFS on CPU to find clusters
+        visited = zeros(Bool, n_samples)
+        label = Vector{Vector{Int}}()
+        proba = zeros(Float64, n_samples)
+        
+        for i in 1:n_samples
+            if !visited[i] && h_is_core[1, i]
+                # Start new cluster
+                current_cluster = Int[]
+                queue = [i]
+                visited[i] = true
+                
+                while !isempty(queue)
+                    curr = popfirst!(queue)
+                    push!(current_cluster, curr)
+                    
+                    if h_is_core[1, curr]
+                        # Scan neighbors from sparse neighbors list
+                        for neighbor_idx in neighbors_list[curr]
+                            if !visited[neighbor_idx]
+                                visited[neighbor_idx] = true
+                                push!(queue, neighbor_idx)
+                            end
+                        end
+                    end
+                end
+                
+                if length(current_cluster) >= mincluster
+                    push!(label, current_cluster)
+                    for idx in current_cluster
+                        proba[idx] = 1.0
+                    end
+                end
+            end
+        end
+        
+        return label, proba
     else
         # Default DBSCAN
         res = dbscan(data , epsilon , leafsize = leaf, min_neighbors = minneigh, min_cluster_size=mincluster)

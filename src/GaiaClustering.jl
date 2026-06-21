@@ -27,7 +27,7 @@ using Glob, GZip, FileIO, CSVFiles, ProgressMeter, LinearAlgebra
 import Interpolations
 using Images, Base
 
-using StatsBase, CSV, Distances, MultivariateStats, FHist, LibPQ
+using StatsBase, CSV, Distances, MultivariateStats, FHist, LibPQ, AMDGPU
 
 using PyCall, PyPlot
 
