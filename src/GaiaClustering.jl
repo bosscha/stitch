@@ -38,7 +38,11 @@ import GeometryBasics as gb
 const Normal = Distributions.Normal
 const Rectangle = GeometryBasics.Rect2{Float64}
 
-VERSION = "2.1.7"
+VERSION = "2.1.8"
+
+function __init__()
+    println("GaiaClustering version: ", VERSION)
+end
 
 ## include all the types
 include("types.jl")

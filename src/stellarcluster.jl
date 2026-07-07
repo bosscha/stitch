@@ -232,17 +232,23 @@ function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
             # Store core flags
             h_is_core[1, c_start:c_end] .= h_is_core_chunk[1, :]
             
-            # Populate sparse neighbor list on CPU
+            # Populate sparse neighbor list on CPU (only for core points)
             for col in 1:c_len
                 point_idx = c_start + col - 1
-                @inbounds for row in 1:n_samples
-                    if h_is_neighbor_chunk[row, col]
-                        push!(neighbors_list[point_idx], row)
-                    end
+                if h_is_core[1, point_idx]
+                    neighbors_list[point_idx] = findall(view(h_is_neighbor_chunk, :, col))
                 end
             end
             
             # Clear chunk variables to free VRAM immediately
+            AMDGPU.unsafe_free!(is_core_chunk)
+            AMDGPU.unsafe_free!(neighbor_counts_chunk)
+            AMDGPU.unsafe_free!(is_neighbor_chunk)
+            AMDGPU.unsafe_free!(dists2_chunk)
+            AMDGPU.unsafe_free!(dot_products_chunk)
+            AMDGPU.unsafe_free!(norms2_chunk)
+            AMDGPU.unsafe_free!(g_data_chunk)
+            
             dists2_chunk = nothing
             is_neighbor_chunk = nothing
             dot_products_chunk = nothing
@@ -253,6 +259,9 @@ function clusters(data , epsilon, leaf , minneigh, mincluster; algo="dbscan")
         end
         
         # Free main GPU matrices
+        AMDGPU.unsafe_free!(norms2)
+        AMDGPU.unsafe_free!(g_data)
+        
         g_data = nothing
         norms2 = nothing
         GC.gc()

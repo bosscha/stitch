@@ -70,27 +70,46 @@ function check_qminqstar(df::GaiaClustering.Df, dfcart::GaiaClustering.Df,
         new_minstars = minstars
         notfound = true
         mingoodsolution = 50
+        niter = params.nburnout
+        totaliter = 0
 
         println("### Checking the minQ and minStars conditions...")
         println("### Minimum good solutions $mingoodsolution")
+        
+        evals = Tuple{Float64, Int}[]
+        
         while notfound
             goodsolutions = 0
-            for i in 1:params.nburnout
-                mi, probi = theta(params)
-                qres, nstars = find_clusters(df, dfcart, mi)
+            
+            # Check already evaluated results
+            for (qres, nstars) in evals
                 if qres > new_minq && nstars >= new_minstars
                     goodsolutions += 1
                 end
-                if goodsolutions > mingoodsolution
-                    notfound = false
-                    return (new_minq, new_minstars)
+            end
+            
+            # If not enough, evaluate more up to niter
+            while goodsolutions <= mingoodsolution && length(evals) < niter
+                mi, probi = theta(params)
+                qres, nstars = find_clusters(df, dfcart, mi)
+                push!(evals, (qres, nstars))
+                if qres > new_minq && nstars >= new_minstars
+                    goodsolutions += 1
                 end
             end
+            
+            if goodsolutions > mingoodsolution
+                notfound = false
+                return (new_minq, new_minstars)
+            end
+            
             if notfound
                 new_minq *= 0.9
                 new_minstars = trunc(Int, 0.9 * new_minstars)
                 println("### MinQ not reached yet... testing with $new_minq")
             end
+            
+            totaliter += niter
 
             if new_minstars == 0
                 println("### Problem with minStars, return(0.5,5)")
@@ -536,23 +555,34 @@ function check_qminqstar_full2(dfcart::GaiaClustering.Df, params::GaiaClustering
         println("#### Clustering algorithm: $(params.algo)")
 
         totaliter = 0
+        evals = Tuple{Float64, Int}[]
+
         while notfound
             goodsolutions = 0
-            for i in 1:niter
-                # println("-- $i")
-                mi, probi = theta_full(params)
-                # println(mi)
-                # println(probi)
-                dfcartnorm = getDfcartnorm(dfcart, mi)
-                qres, nstars = find_clusters2(dfcartnorm, dfcart, mi, params)
+            
+            # Check already evaluated results
+            for (qres, nstars) in evals
                 if qres > new_minq && nstars >= new_minstars
                     goodsolutions += 1
                 end
-                if goodsolutions > mingoodsolution
-                    notfound = false
-                    return (new_minq, new_minstars)
+            end
+            
+            # If not enough, evaluate more up to niter
+            while goodsolutions <= mingoodsolution && length(evals) < niter
+                mi, probi = theta_full(params)
+                dfcartnorm = getDfcartnorm(dfcart, mi)
+                qres, nstars = find_clusters2(dfcartnorm, dfcart, mi, params)
+                push!(evals, (qres, nstars))
+                if qres > new_minq && nstars >= new_minstars
+                    goodsolutions += 1
                 end
             end
+
+            if goodsolutions > mingoodsolution
+                notfound = false
+                return (new_minq, new_minstars)
+            end
+            
             totaliter += niter
             if notfound
                 new_minq *= 0.95
