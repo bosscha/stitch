@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 # 1. Simulation Constants
 N_STARS = 5000
-DIM = 5          # Number of spatial dimensions
+DIM = 3          # Number of spatial dimensions
 G = 1.0          # Astrophysical units
 DT = 0.001        # Time step
 STEPS = 50000      # Number of integration steps
@@ -77,12 +77,25 @@ print(f"➔ Time Conversion: 1 N-body time unit = {time_to_myr:.4f} Myr")
 
 # 5. Core N-Body Gravitational Kernel
 def compute_gravitational_accelerations(pos, mass):
-    diff = pos.unsqueeze(0) - pos.unsqueeze(1) 
-    dist_sq = torch.sum(diff ** 2, dim=-1)
-    inv_dist_power = (dist_sq + SOFTENING**2).pow(-DIM / 2.0)
-    inv_dist_power.fill_diagonal_(0.0)
-    forces = diff * inv_dist_power.unsqueeze(-1) * mass.view(1, -1, 1)
-    acc = G * torch.sum(forces, dim=1)
+    acc = torch.zeros_like(pos)
+    chunk_size = 1000  # Process in batches to avoid GPU Hang / TDR timeout on AMD ROCm
+    
+    # Process target stars in chunks
+    for i in range(0, pos.size(0), chunk_size):
+        end = min(i + chunk_size, pos.size(0))
+        
+        # diff shape: (chunk_size, N_STARS, DIM)
+        diff = pos[i:end].unsqueeze(1) - pos.unsqueeze(0)
+        
+        dist_sq = torch.sum(diff ** 2, dim=-1)
+        
+        # Softened inverse distance calculation
+        inv_dist_power = (dist_sq + SOFTENING**2).pow(-DIM / 2.0)
+        
+        # Calculate forces. Self-interaction evaluates to zero since diff is zero.
+        forces = diff * inv_dist_power.unsqueeze(-1) * mass.view(1, -1, 1)
+        acc[i:end] = G * torch.sum(forces, dim=1)
+        
     return acc
 
 # 6. Main Integration Loop (Velocity Verlet)
@@ -98,6 +111,21 @@ print(f"➔ Initial 80% radius (R80): {r80_initial:.4f}")
 TRACK_INTERVAL = 100
 escaped_counts = []
 time_steps_list = []
+slopes_inside_50 = []
+slopes_outside_50 = []
+
+mass_phys_cpu = (mass_gpu * total_mass).cpu().numpy().flatten()
+
+def compute_mass_slope(masses, m_min, m_max, num_bins=15):
+    if len(masses) < 10: return np.nan
+    bins = np.logspace(np.log10(m_min), np.log10(m_max), num_bins)
+    counts, _ = np.histogram(masses, bins=bins)
+    dn_dm = counts / (bins[1:] - bins[:-1])
+    bin_centers = np.sqrt(bins[1:] * bins[:-1])
+    valid = dn_dm > 0
+    if np.sum(valid) < 3: return np.nan
+    slope, _ = np.polyfit(np.log10(bin_centers[valid]), np.log10(dn_dm[valid]), 1)
+    return -slope
 
 acc_gpu = compute_gravitational_accelerations(pos_gpu, mass_gpu)
 
@@ -113,6 +141,12 @@ for step in range(STEPS):
         escaped = torch.sum(dists > r80_initial).item()
         escaped_counts.append(escaped)
         time_steps_list.append(step * DT * time_to_myr)
+        
+        dists_cpu = dists.cpu().numpy()
+        inside_mask = dists_cpu <= 50.0
+        outside_mask = dists_cpu > 50.0
+        slopes_inside_50.append(compute_mass_slope(mass_phys_cpu[inside_mask], M_MIN, M_MAX))
+        slopes_outside_50.append(compute_mass_slope(mass_phys_cpu[outside_mask], M_MIN, M_MAX))
     
     if step % 1000 == 0:
         time_myr = step * DT * time_to_myr
@@ -195,3 +229,17 @@ plt.grid(True)
 plot_dens_filename = f'radial_density_{DIM}D.png'
 plt.savefig(plot_dens_filename, dpi=300, bbox_inches='tight')
 print(f"Radial density plot saved to '{plot_dens_filename}'")
+
+# Generate mass slope evolution plot
+plt.figure(figsize=(10, 6))
+plt.plot(time_steps_list, slopes_inside_50, label='Inside 50 pc', color='purple', linewidth=2)
+plt.plot(time_steps_list, slopes_outside_50, label='Outside 50 pc', color='orange', linewidth=2)
+plt.axhline(y=ALPHA, color='k', linestyle='--', label=f'Initial Salpeter (α={ALPHA})')
+plt.xlabel('Time (Myr)')
+plt.ylabel('Mass Slope α (from dN/dM ∝ M^(-α))')
+plt.title('Evolution of Mass Function Slope Inside/Outside 50 pc')
+plt.legend()
+plt.grid(True)
+plot_slope_filename = f'mass_slope_evolution_{DIM}D.png'
+plt.savefig(plot_slope_filename, dpi=300, bbox_inches='tight')
+print(f"Mass slope evolution plot saved to '{plot_slope_filename}'")
