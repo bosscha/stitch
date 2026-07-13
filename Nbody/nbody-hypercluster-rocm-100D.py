@@ -13,9 +13,9 @@ from psycopg2 import extras
 N_STARS = 5000
 DIM = 100          # Number of spatial dimensions
 G = 1.0          # Astrophysical units
-DT = 0.001        # Time step
-STEPS = 50000      # Number of integration steps
-SOFTENING = 0.05 # Prevent numerical infinities during close encounters
+DT = 0.0001        # Time step
+STEPS = 5000000      # Number of integration steps
+SOFTENING = 0.01 # Prevent numerical infinities during close encounters
 
 # Salpeter IMF Constants
 M_MIN = 0.1      # Minimum stellar mass (solar masses)
