@@ -3,6 +3,8 @@ import numpy as np
 import time
 import math
 import matplotlib.pyplot as plt
+import psycopg2
+from psycopg2 import extras
 
 # NBody simulation for GPU AMD 8060S 
 # python env: astro_env
@@ -116,6 +118,27 @@ slopes_outside_50 = []
 
 mass_phys_cpu = (mass_gpu * total_mass).cpu().numpy().flatten()
 
+# Database setup
+try:
+    db_conn = psycopg2.connect(dbname='hypercluster', user='stephane', password='tallis', host='localhost')
+    db_cursor = db_conn.cursor()
+    db_cursor.execute("""
+        CREATE TABLE IF NOT EXISTS star_snapshots (
+            id SERIAL PRIMARY KEY,
+            snapshot_id INTEGER,
+            time_myr DOUBLE PRECISION,
+            star_id INTEGER,
+            mass DOUBLE PRECISION,
+            dim_space INTEGER,
+            position DOUBLE PRECISION[],
+            velocity DOUBLE PRECISION[]
+        );
+    """)
+    db_conn.commit()
+except Exception as e:
+    print(f"Failed to connect to database or create table: {e}")
+    db_conn = None
+
 def compute_mass_slope(masses, m_min, m_max, num_bins=15):
     if len(masses) < 10: return np.nan
     bins = np.logspace(np.log10(m_min), np.log10(m_max), num_bins)
@@ -147,10 +170,44 @@ for step in range(STEPS):
         outside_mask = dists_cpu > 50.0
         slopes_inside_50.append(compute_mass_slope(mass_phys_cpu[inside_mask], M_MIN, M_MAX))
         slopes_outside_50.append(compute_mass_slope(mass_phys_cpu[outside_mask], M_MIN, M_MAX))
-    
+        
+        if db_conn is not None:
+            pos_cpu = pos_gpu.cpu().numpy()
+            vel_cpu = vel_gpu.cpu().numpy()
+            time_val = step * DT * time_to_myr
+            
+            # Prepare data for bulk insert
+            records = []
+            for i in range(N_STARS):
+                records.append((
+                    step,
+                    float(time_val),
+                    i,
+                    float(mass_phys_cpu[i]),
+                    DIM,
+                    pos_cpu[i].tolist(),
+                    vel_cpu[i].tolist()
+                ))
+            
+            insert_query = """
+                INSERT INTO star_snapshots 
+                (snapshot_id, time_myr, star_id, mass, dim_space, position, velocity) 
+                VALUES %s
+            """
+            try:
+                extras.execute_values(db_cursor, insert_query, records)
+                db_conn.commit()
+            except Exception as e:
+                print(f"Database insertion failed at step {step}: {e}")
+                db_conn.rollback()
+
     if step % 1000 == 0:
         time_myr = step * DT * time_to_myr
         print(f"Step {step:04d}/{STEPS} completed. Physical Time: {time_myr:.2f} Myr")
+
+if db_conn is not None:
+    db_cursor.close()
+    db_conn.close()
 
 torch.cuda.synchronize()
 print(f"\nSimulation completed in: {time.time() - start_time:.4f} seconds!")
