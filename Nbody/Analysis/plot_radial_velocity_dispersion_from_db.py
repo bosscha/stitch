@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 import sys
-import math
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import psycopg2
 
-def volume_nd(r, dim):
-    """Calculate the volume of an n-dimensional sphere of radius r."""
-    return (math.pi**(dim/2.0) / math.gamma(dim/2.0 + 1.0)) * (r**dim)
-
 def main():
-    parser = argparse.ArgumentParser(description="Plot initial and final radial density from the hypercluster database.")
+    parser = argparse.ArgumentParser(description="Plot initial and final radial velocity dispersion from the hypercluster database.")
     parser.add_argument("--dim", type=int, help="Spatial dimension of the simulation (e.g., 2, 3, 4, 5, 6, 100)")
     parser.add_argument("--host", type=str, default="localhost", help="Database host")
     parser.add_argument("--user", type=str, default="stephane", help="Database user")
@@ -73,11 +68,11 @@ def main():
 
     print(f"Found simulation snapshots up to {max_snapshot_id} with {num_stars} stars per snapshot.")
 
-    # Load initial positions (snapshot_id = 0) from the latest run
-    print("Loading initial snapshot positions...")
+    # Load initial positions, velocities, and masses (snapshot_id = 0) from the latest run
+    print("Loading initial snapshot positions, velocities, and masses...")
     cursor.execute("""
-        SELECT position FROM (
-            SELECT id, position 
+        SELECT position, velocity, mass FROM (
+            SELECT id, position, velocity, mass 
             FROM star_snapshots 
             WHERE dim_space = %s AND snapshot_id = 0 
             ORDER BY id DESC 
@@ -87,11 +82,11 @@ def main():
     """, (dim_space, num_stars))
     initial_rows = cursor.fetchall()
     
-    # Load final positions (snapshot_id = max_snapshot_id)
-    print("Loading final snapshot positions...")
+    # Load final positions, velocities, and masses (snapshot_id = max_snapshot_id)
+    print("Loading final snapshot positions, velocities, and masses...")
     cursor.execute("""
-        SELECT position FROM (
-            SELECT id, position 
+        SELECT position, velocity, mass FROM (
+            SELECT id, position, velocity, mass 
             FROM star_snapshots 
             WHERE dim_space = %s AND snapshot_id = %s 
             ORDER BY id DESC 
@@ -110,60 +105,84 @@ def main():
             print("Error: Could not retrieve snapshot data.")
             sys.exit(1)
 
-    # Convert positions to numpy arrays
+    # Convert to numpy arrays
     pos_init = np.array([row[0] for row in initial_rows])
+    vel_init = np.array([row[1] for row in initial_rows])
+    mass_init = np.array([row[2] for row in initial_rows])
+    
     pos_final = np.array([row[0] for row in final_rows])
+    vel_final = np.array([row[1] for row in final_rows])
+    mass_final = np.array([row[2] for row in final_rows])
     
-    # Compute center of positions (mean of positions)
-    center_init = np.mean(pos_init, axis=0)
-    center_final = np.mean(pos_final, axis=0)
-    
-    # Calculate radial distances from center of mass
-    dist_init = np.sqrt(np.sum((pos_init - center_init)**2, axis=1))
-    dist_final = np.sqrt(np.sum((pos_final - center_final)**2, axis=1))
+    def calculate_radial_velocities(pos, vel, mass):
+        total_m = np.sum(mass)
+        # 1. Center of mass position (barycenter)
+        center_pos = np.sum(pos * mass[:, np.newaxis], axis=0) / total_m
+        # 2. Bulk velocity of the cluster (mass-weighted)
+        bulk_vel = np.sum(vel * mass[:, np.newaxis], axis=0) / total_m
+        
+        # 3. Relative positions and velocities
+        rel_pos = pos - center_pos
+        rel_vel = vel - bulk_vel
+        
+        # 4. Radial distances
+        dists = np.sqrt(np.sum(rel_pos**2, axis=1))
+        
+        # Avoid division by zero for any star at the exact center
+        eps = 1e-10
+        dists_safe = np.where(dists == 0, eps, dists)
+        
+        # 5. Unit radial vector
+        unit_r = rel_pos / dists_safe[:, np.newaxis]
+        
+        # 6. Radial velocity: dot product of relative velocity and unit radial vector
+        v_radial = np.sum(rel_vel * unit_r, axis=1)
+        
+        return dists, v_radial
 
-    print(f"Initial positions center: {center_init}")
-    print(f"Final positions center: {center_final}")
-    print(f"Min/Max initial distance: {np.min(dist_init):.4f} / {np.max(dist_init):.4f}")
-    print(f"Min/Max final distance: {np.min(dist_final):.4f} / {np.max(dist_final):.4f}")
+    print("Calculating initial radial velocities...")
+    dist_init, v_rad_init = calculate_radial_velocities(pos_init, vel_init, mass_init)
+    
+    print("Calculating final radial velocities...")
+    dist_final, v_rad_final = calculate_radial_velocities(pos_final, vel_final, mass_final)
+
+    # Calculate velocity dispersion in radial bins
+    max_dist = max(np.max(dist_init), np.max(dist_final))
+    min_dist_val = max(np.min(dist_init[dist_init > 0]) if np.any(dist_init > 0) else 1e-2, 1e-3)
+    bins_log = np.logspace(np.log10(min_dist_val), np.log10(max_dist), 40)
+    
+    def compute_dispersion(dists, v_rad, bins):
+        bin_centers = []
+        dispersion = []
+        for i in range(len(bins)-1):
+            lower, upper = bins[i], bins[i+1]
+            mask = (dists >= lower) & (dists < upper)
+            subset = v_rad[mask]
+            if len(subset) >= 5: # Require at least 5 stars in a bin
+                bin_centers.append((lower + upper) / 2.0)
+                dispersion.append(np.std(subset))
+        return np.array(bin_centers), np.array(dispersion)
+
+    print("Computing dispersion profiles...")
+    bin_centers_init, sigma_r_init = compute_dispersion(dist_init, v_rad_init, bins_log)
+    bin_centers_final, sigma_r_final = compute_dispersion(dist_final, v_rad_final, bins_log)
 
     # Plot Setup
     plt.figure(figsize=(10, 6))
     
-    # Use log-spaced bins for a better representation in log-log scale
-    max_dist = max(np.max(dist_init), np.max(dist_final))
-    min_dist_val = max(np.min(dist_init[dist_init > 0]) if np.any(dist_init > 0) else 1e-2, 1e-3)
-    bins_log = np.logspace(np.log10(min_dist_val), np.log10(max_dist), 50)
-    
-    counts_init, bins_edges = np.histogram(dist_init, bins=bins_log)
-    counts_final, _ = np.histogram(dist_final, bins=bins_edges)
-    
-    # Calculate volumes of n-dimensional shells
-    volumes = volume_nd(bins_edges[1:], dim_space) - volume_nd(bins_edges[:-1], dim_space)
-    volumes = np.maximum(volumes, 1e-15)
-    
-    density_init = counts_init / volumes
-    density_final = counts_final / volumes
-    bin_centers = (bins_edges[:-1] + bins_edges[1:]) / 2.0
-    
-    # Only plot where density > 0 to avoid log(0) issues in log-log plot
-    valid_init = density_init > 0
-    valid_final = density_final > 0
-    
-    plt.plot(bin_centers[valid_init], density_init[valid_init], label='Initial Density (DB)', color='b', marker='.', linestyle='-')
-    plt.plot(bin_centers[valid_final], density_final[valid_final], label='Final Density (DB)', color='r', marker='.', linestyle='-')
+    plt.plot(bin_centers_init, sigma_r_init, label='Initial Radial σ_r (DB)', color='b', marker='.', linestyle='-')
+    plt.plot(bin_centers_final, sigma_r_final, label='Final Radial σ_r (DB)', color='r', marker='.', linestyle='-')
     
     plt.xscale('log')
-    plt.yscale('log')
     plt.xlabel('Radial Distance from Center')
-    plt.ylabel('Density (Stars / Volume)')
-    plt.title(f'Initial vs Final Radial Density (N={dim_space} dimensions) - from DB')
+    plt.ylabel('Radial Velocity Dispersion σ_r')
+    plt.title(f'Initial vs Final Radial Velocity Dispersion (N={dim_space} dimensions) - from DB')
     plt.legend()
     plt.grid(True, which="both", ls="--", alpha=0.5)
     
-    plot_filename = f'radial_density_{dim_space}D_from_db.png'
+    plot_filename = f'radial_velocity_dispersion_{dim_space}D_from_db.png'
     plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
-    print(f"Radial density plot successfully saved to '{plot_filename}'!")
+    print(f"Radial velocity dispersion plot successfully saved to '{plot_filename}'!")
 
 if __name__ == "__main__":
     main()

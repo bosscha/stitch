@@ -77,10 +77,10 @@ def main():
     print(f"Found simulation snapshots up to {max_snapshot_id} with {num_stars} stars per snapshot.")
 
     # Load initial positions (snapshot_id = 0) from the latest run
-    print("Loading initial snapshot positions...")
+    print("Loading initial snapshot positions and masses...")
     cursor.execute("""
-        SELECT position FROM (
-            SELECT id, position 
+        SELECT position, mass FROM (
+            SELECT id, position, mass 
             FROM star_snapshots 
             WHERE dim_space = %s AND snapshot_id = 0 
             ORDER BY id DESC 
@@ -91,10 +91,10 @@ def main():
     initial_rows = cursor.fetchall()
     
     # Load final positions (snapshot_id = max_snapshot_id)
-    print("Loading final snapshot positions...")
+    print("Loading final snapshot positions and masses...")
     cursor.execute("""
-        SELECT position FROM (
-            SELECT id, position 
+        SELECT position, mass FROM (
+            SELECT id, position, mass 
             FROM star_snapshots 
             WHERE dim_space = %s AND snapshot_id = %s 
             ORDER BY id DESC 
@@ -113,23 +113,26 @@ def main():
             print("Error: Could not retrieve snapshot data.")
             sys.exit(1)
 
-    # Convert positions to numpy arrays
+    # Convert positions and masses to numpy arrays
     pos_init = np.array([row[0] for row in initial_rows])
+    mass_init = np.array([row[1] for row in initial_rows])
+    
     pos_final = np.array([row[0] for row in final_rows])
+    mass_final = np.array([row[1] for row in final_rows])
     
     # Project positions onto the selected 2D plane (default: dimensions 0 and 1)
     pos_proj_init = pos_init[:, [args.proj_x, args.proj_y]]
     pos_proj_final = pos_final[:, [args.proj_x, args.proj_y]]
     
-    # Compute center of projected positions (mean)
-    center_proj_init = np.mean(pos_proj_init, axis=0)
-    center_proj_final = np.mean(pos_proj_final, axis=0)
+    # Compute center of mass of projected positions (projected barycenter)
+    center_proj_init = np.sum(pos_proj_init * mass_init[:, np.newaxis], axis=0) / np.sum(mass_init)
+    center_proj_final = np.sum(pos_proj_final * mass_final[:, np.newaxis], axis=0) / np.sum(mass_final)
     
     # Calculate projected radial distances from the projected center
     dist_proj_init = np.sqrt(np.sum((pos_proj_init - center_proj_init)**2, axis=1))
     dist_proj_final = np.sqrt(np.sum((pos_proj_final - center_proj_final)**2, axis=1))
 
-    print(f"Projected center (dimensions {args.proj_x} & {args.proj_y}) - Initial: {center_proj_init}, Final: {center_proj_final}")
+    print(f"Projected center (barycenter, dimensions {args.proj_x} & {args.proj_y}) - Initial: {center_proj_init}, Final: {center_proj_final}")
     print(f"Projected distance range - Initial: {np.min(dist_proj_init):.4f} to {np.max(dist_proj_init):.4f}")
     print(f"Projected distance range - Final: {np.min(dist_proj_final):.4f} to {np.max(dist_proj_final):.4f}")
 
