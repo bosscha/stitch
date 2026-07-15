@@ -67,6 +67,23 @@ with torch.no_grad():
     total_mass = torch.sum(mass_gpu)
     mass_gpu = mass_gpu / total_mass
 
+    # Shift velocities to stop CoM drift
+    mass_sum = mass_gpu.sum()
+    vel_cm = (vel_gpu * mass_gpu).sum(dim=0) / mass_sum
+    vel_gpu -= vel_cm
+
+    # Compute energies and scale velocities to Virial Equilibrium (Q = 0.5)
+    T = 0.5 * torch.sum(mass_gpu * torch.sum(vel_gpu**2, dim=1, keepdim=True)).item()
+    dist_mat = torch.cdist(pos_gpu, pos_gpu, p=2)
+    inv_dist = 1.0 / torch.sqrt(dist_mat**2 + SOFTENING**2)
+    inv_dist.fill_diagonal_(0)
+    V = -0.5 * G * torch.sum(mass_gpu * torch.matmul(inv_dist, mass_gpu)).item()
+    
+    f_scale = math.sqrt(0.5 * abs(V) / T)
+    vel_gpu *= f_scale
+    print(f"➔ Initial Virial Ratio before scaling: {T/abs(V):.4f}")
+    print(f"➔ Scaled velocities by factor {f_scale:.4f} to achieve virial equilibrium (Q = 0.5)")
+
 G_PHYS = 0.00449
 L_UNIT = 1.0
 time_to_myr = np.sqrt((L_UNIT**3) / (G_PHYS * total_mass.item()))
