@@ -111,6 +111,9 @@ def compute_gravitational_accelerations(pos, mass):
         # Softened inverse distance calculation
         inv_dist_power = (dist_sq + SOFTENING**2).pow(-DIM / 2.0)
         
+        # Clamp to avoid float32 overflow (inf) which causes NaN when multiplied by zero diff (self-interaction)
+        inv_dist_power = torch.clamp(inv_dist_power, max=torch.finfo(torch.float32).max)
+        
         # Calculate forces. Self-interaction evaluates to zero since diff is zero.
         forces = diff * inv_dist_power.unsqueeze(-1) * mass.view(1, -1, 1)
         acc[i:end] = G * torch.sum(forces, dim=1)

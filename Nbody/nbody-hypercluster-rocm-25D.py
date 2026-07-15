@@ -11,7 +11,7 @@ from psycopg2 import extras
 
 # 1. Simulation Constants
 N_STARS = 5000
-DIM = 3          # Number of spatial dimensions
+DIM = 25          # Number of spatial dimensions
 G = 1.0          # Astrophysical units
 DT = 0.0001        # Time step
 STEPS = 5000000      # Number of integration steps
