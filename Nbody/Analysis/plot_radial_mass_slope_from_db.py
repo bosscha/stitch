@@ -105,31 +105,39 @@ def main():
         conn.close()
         sys.exit(1)
 
-    # Find the starting database ID for this run (minimum id of the latest snapshot 0)
+    # Find the minimum snapshot_id for this dimension
+    cursor.execute("""
+        SELECT MIN(snapshot_id)
+        FROM star_snapshots
+        WHERE dim_space = %s;
+    """, (dim_space,))
+    min_snapshot_id = cursor.fetchone()[0]
+
+    # Find the starting database ID for this run (minimum id of the latest min_snapshot_id)
     cursor.execute("""
         SELECT MIN(id) FROM (
             SELECT id FROM star_snapshots 
-            WHERE dim_space = %s AND snapshot_id = 0 
+            WHERE dim_space = %s AND snapshot_id = %s 
             ORDER BY id DESC 
             LIMIT %s
         ) as sub;
-    """, (dim_space, num_stars))
+    """, (dim_space, min_snapshot_id, num_stars))
     start_db_id = cursor.fetchone()[0]
 
     print(f"Found simulation snapshots up to {max_snapshot_id} with {num_stars} stars per snapshot.")
 
-    # Load initial positions and masses (snapshot_id = 0) from the latest run
+    # Load initial positions and masses (snapshot_id = min_snapshot_id) from the latest run
     print("Loading initial snapshot positions and masses...")
     cursor.execute("""
         SELECT position, mass FROM (
             SELECT id, position, mass 
             FROM star_snapshots 
-            WHERE dim_space = %s AND snapshot_id = 0 AND id >= %s
+            WHERE dim_space = %s AND snapshot_id = %s AND id >= %s
             ORDER BY id DESC 
             LIMIT %s
         ) as sub 
         ORDER BY id ASC;
-    """, (dim_space, start_db_id, num_stars))
+    """, (dim_space, min_snapshot_id, start_db_id, num_stars))
     initial_rows = cursor.fetchall()
     
     # Load final positions and masses (snapshot_id = max_snapshot_id)
@@ -206,9 +214,9 @@ def main():
     
     if not args.linear:
         plt.xscale('log')
-        plt.xlabel('Radial Distance from Center (log scale)')
+        plt.xlabel('Radial Distance from Center (pc, log scale)')
     else:
-        plt.xlabel('Radial Distance from Center')
+        plt.xlabel('Radial Distance from Center (pc)')
         
     plt.ylabel('Fitted Mass Function Slope (α)')
     scale_type = "Linear Scale" if args.linear else "Log-X Scale"

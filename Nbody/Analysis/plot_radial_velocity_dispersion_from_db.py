@@ -60,6 +60,14 @@ def main():
     """, (dim_space, max_snapshot_id))
     num_stars = cursor.fetchone()[0]
 
+    # Find the minimum snapshot_id for this dimension
+    cursor.execute("""
+        SELECT MIN(snapshot_id)
+        FROM star_snapshots
+        WHERE dim_space = %s;
+    """, (dim_space,))
+    min_snapshot_id = cursor.fetchone()[0]
+
     if num_stars == 0:
         print(f"Error: Found 0 stars for the final snapshot {max_snapshot_id}.")
         cursor.close()
@@ -68,18 +76,18 @@ def main():
 
     print(f"Found simulation snapshots up to {max_snapshot_id} with {num_stars} stars per snapshot.")
 
-    # Load initial positions, velocities, and masses (snapshot_id = 0) from the latest run
+    # Load initial positions, velocities, and masses (snapshot_id = min_snapshot_id) from the latest run
     print("Loading initial snapshot positions, velocities, and masses...")
     cursor.execute("""
         SELECT position, velocity, mass FROM (
             SELECT id, position, velocity, mass 
             FROM star_snapshots 
-            WHERE dim_space = %s AND snapshot_id = 0 
+            WHERE dim_space = %s AND snapshot_id = %s 
             ORDER BY id DESC 
             LIMIT %s
         ) as sub 
         ORDER BY id ASC;
-    """, (dim_space, num_stars))
+    """, (dim_space, min_snapshot_id, num_stars))
     initial_rows = cursor.fetchall()
     
     # Load final positions, velocities, and masses (snapshot_id = max_snapshot_id)
@@ -113,6 +121,15 @@ def main():
     pos_final = np.array([row[0] for row in final_rows])
     vel_final = np.array([row[1] for row in final_rows])
     mass_final = np.array([row[2] for row in final_rows])
+    
+    # Calculate velocity conversion factor (N-body velocity to km/s)
+    total_mass = np.sum(mass_init)
+    g_phys = 0.00449
+    time_to_myr = np.sqrt(1.0 / (g_phys * total_mass))
+    v_conv = (1.0 / time_to_myr) * 0.977813 # N-body units to km/s
+    
+    vel_init = vel_init * v_conv
+    vel_final = vel_final * v_conv
     
     def calculate_radial_velocities(pos, vel, mass):
         total_m = np.sum(mass)
@@ -174,9 +191,9 @@ def main():
     plt.plot(bin_centers_final, sigma_r_final, label='Final Radial σ_r (DB)', color='r', marker='.', linestyle='-')
     
     plt.xscale('log')
-    plt.xlabel('Radial Distance from Center')
-    plt.ylabel('Radial Velocity Dispersion σ_r')
-    plt.title(f'Initial vs Final Radial Velocity Dispersion (N={dim_space} dimensions) - from DB')
+    plt.xlabel('Radial Distance from Center (pc)')
+    plt.ylabel('Radial Velocity Dispersion σ_r (km/s)')
+    plt.title(f'Initial vs Final Radial Velocity Dispersion (N={dim_space} dimensions)')
     plt.legend()
     plt.grid(True, which="both", ls="--", alpha=0.5)
     

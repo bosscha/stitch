@@ -91,31 +91,39 @@ def main():
         conn.close()
         sys.exit(1)
 
-    # Find the starting database ID for this run (minimum id of the latest snapshot 0)
+    # Find the minimum snapshot_id for this dimension
+    cursor.execute("""
+        SELECT MIN(snapshot_id)
+        FROM star_snapshots
+        WHERE dim_space = %s;
+    """, (dim_space,))
+    min_snapshot_id = cursor.fetchone()[0]
+
+    # Find the starting database ID for this run (minimum id of the latest min_snapshot_id)
     cursor.execute("""
         SELECT MIN(id) FROM (
             SELECT id FROM star_snapshots 
-            WHERE dim_space = %s AND snapshot_id = 0 
+            WHERE dim_space = %s AND snapshot_id = %s 
             ORDER BY id DESC 
             LIMIT %s
         ) as sub;
-    """, (dim_space, num_stars))
+    """, (dim_space, min_snapshot_id, num_stars))
     start_db_id = cursor.fetchone()[0]
 
     print(f"Found simulation snapshots up to {max_snapshot_id} with {num_stars} stars per snapshot.")
 
-    # Load initial positions and masses (snapshot_id = 0) from the latest run
+    # Load initial positions and masses (snapshot_id = min_snapshot_id) from the latest run
     print("Loading initial snapshot positions and masses...")
     cursor.execute("""
         SELECT position, mass FROM (
             SELECT id, position, mass 
             FROM star_snapshots 
-            WHERE dim_space = %s AND snapshot_id = 0 AND id >= %s
+            WHERE dim_space = %s AND snapshot_id = %s AND id >= %s
             ORDER BY id DESC 
             LIMIT %s
         ) as sub 
         ORDER BY id ASC;
-    """, (dim_space, start_db_id, num_stars))
+    """, (dim_space, min_snapshot_id, start_db_id, num_stars))
     initial_rows = cursor.fetchall()
     
     # Load final positions and masses (snapshot_id = max_snapshot_id)
@@ -155,8 +163,8 @@ def main():
     r50_init = np.quantile(dist_init, 0.5)
     r50_final = np.quantile(dist_final, 0.5)
     
-    print(f"Initial R50 (50% mass radius): {r50_init:.4f}")
-    print(f"Final R50 (50% mass radius): {r50_final:.4f}")
+    print(f"Initial R50 (50% mass radius): {r50_init:.4f} pc")
+    print(f"Final R50 (50% mass radius): {r50_final:.4f} pc")
 
     # Masks for inner vs outer stars
     mask_inner_init = dist_init <= r50_init

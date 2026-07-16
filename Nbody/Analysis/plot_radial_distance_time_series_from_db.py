@@ -85,28 +85,36 @@ def main():
     """, (dim_space, max_snapshot_id))
     num_stars = cursor.fetchone()[0]
 
-    # 3. Find the starting database ID for this run (minimum id of the latest snapshot 0)
+    # Find the minimum snapshot_id for this dimension
+    cursor.execute("""
+        SELECT MIN(snapshot_id)
+        FROM star_snapshots
+        WHERE dim_space = %s;
+    """, (dim_space,))
+    min_snapshot_id = cursor.fetchone()[0]
+
+    # 3. Find the starting database ID for this run (minimum id of the latest min_snapshot_id)
     cursor.execute("""
         SELECT MIN(id) FROM (
             SELECT id FROM star_snapshots 
-            WHERE dim_space = %s AND snapshot_id = 0 
+            WHERE dim_space = %s AND snapshot_id = %s 
             ORDER BY id DESC 
             LIMIT %s
         ) as sub;
-    """, (dim_space, num_stars))
+    """, (dim_space, min_snapshot_id, num_stars))
     start_db_id = cursor.fetchone()[0]
 
     # 4. Find the step size dynamically
     cursor.execute("""
         SELECT MIN(snapshot_id) 
         FROM star_snapshots 
-        WHERE dim_space = %s AND snapshot_id > 0 AND id >= %s;
-    """, (dim_space, start_db_id))
+        WHERE dim_space = %s AND snapshot_id > %s AND id >= %s;
+    """, (dim_space, min_snapshot_id, start_db_id))
     second_snap = cursor.fetchone()[0]
-    step_size = second_snap if second_snap is not None else 100
+    step_size = (second_snap - min_snapshot_id) if second_snap is not None else 100
 
     # Generate full snapshot IDs list
-    snap_ids = list(range(0, max_snapshot_id + 1, step_size))
+    snap_ids = list(range(min_snapshot_id, max_snapshot_id + 1, step_size))
     total_snapshots = len(snap_ids)
 
     print(f"Detected snapshots up to ID {max_snapshot_id} (step size: {step_size}). Total potential snapshots: {total_snapshots}")
@@ -206,9 +214,9 @@ def main():
 
     if args.log_y:
         plt.yscale('log')
-        plt.ylabel('Radial Distance R from Center of Mass (log scale)')
+        plt.ylabel('Radial Distance R from Center of Mass (pc, log scale)')
     else:
-        plt.ylabel('Radial Distance R from Center of Mass')
+        plt.ylabel('Radial Distance R from Center of Mass (pc)')
 
     plt.xlabel('Time (Myr)')
     plt.title(f'Time Series of Stellar Radial Distances ({dim_space}D)')
