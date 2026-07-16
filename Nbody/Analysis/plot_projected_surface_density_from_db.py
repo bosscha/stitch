@@ -160,16 +160,20 @@ def main():
     surf_density_final = counts_final / areas
     bin_centers = (bins_edges[:-1] + bins_edges[1:]) / 2.0
     
+    # Calculate Poisson uncertainties (sigma_N = sqrt(N)) and propagate to surface density (sigma_Sigma = sigma_N / area)
+    err_surf_density_init = np.sqrt(counts_init) / areas
+    err_surf_density_final = np.sqrt(counts_final) / areas
+    
     # Plot density
     if args.linear:
-        plt.plot(bin_centers, surf_density_init, label='Initial Surface Density (DB)', color='b', marker='.', linestyle='-')
-        plt.plot(bin_centers, surf_density_final, label='Final Surface Density (DB)', color='r', marker='.', linestyle='-')
+        plt.errorbar(bin_centers, surf_density_init, yerr=err_surf_density_init, label='Initial Surface Density (DB)', color='b', marker='.', linestyle='-', capsize=4)
+        plt.errorbar(bin_centers, surf_density_final, yerr=err_surf_density_final, label='Final Surface Density (DB)', color='r', marker='.', linestyle='-', capsize=4)
     else:
         # Only plot where density > 0 to avoid log(0) issues in log-log plot
         valid_init = surf_density_init > 0
         valid_final = surf_density_final > 0
-        plt.plot(bin_centers[valid_init], surf_density_init[valid_init], label='Initial Surface Density (DB)', color='b', marker='.', linestyle='-')
-        plt.plot(bin_centers[valid_final], surf_density_final[valid_final], label='Final Surface Density (DB)', color='r', marker='.', linestyle='-')
+        plt.errorbar(bin_centers[valid_init], surf_density_init[valid_init], yerr=err_surf_density_init[valid_init], label='Initial Surface Density (DB)', color='b', marker='.', linestyle='-', capsize=4)
+        plt.errorbar(bin_centers[valid_final], surf_density_final[valid_final], yerr=err_surf_density_final[valid_final], label='Final Surface Density (DB)', color='r', marker='.', linestyle='-', capsize=4)
         plt.xscale('log')
         plt.yscale('log')
         
