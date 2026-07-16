@@ -9,7 +9,7 @@ from psycopg2 import extras
 # NBody simulation for GPU AMD 8060S 
 # python env: astro_env
 
-# 1. Simulation Constants
+# 1. Simuissue for 100lation Constants
 N_STARS = 5000
 DIM = 100          # Number of spatial dimensions
 G = 1.0          # Astrophysical units
@@ -110,9 +110,6 @@ def compute_gravitational_accelerations(pos, mass):
         
         # Softened inverse distance calculation
         inv_dist_power = (dist_sq + SOFTENING**2).pow(-DIM / 2.0)
-        
-        # Clamp to avoid float32 overflow (inf) which causes NaN when multiplied by zero diff (self-interaction)
-        inv_dist_power = torch.clamp(inv_dist_power, max=torch.finfo(torch.float32).max)
         
         # Calculate forces. Self-interaction evaluates to zero since diff is zero.
         forces = diff * inv_dist_power.unsqueeze(-1) * mass.view(1, -1, 1)
