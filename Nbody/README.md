@@ -1,33 +1,59 @@
-# N-Body Simulation for AMD GPU (ROCm)
+# GAIA Hypercluster N-Body Simulations
 
-This is a PyTorch-based N-Body gravitational simulation designed to run efficiently on AMD GPUs (e.g., AMD 8060S) using ROCm. By leveraging PyTorch tensor operations on the `cuda` backend, it computes heavy $O(N^2)$ pairwise forces in a fully vectorized manner.
+This repository contains N-Body gravitational simulations designed to model hyperclusters across various spatial dimensions (ranging from 1D to 100D). The project features multiple computational backends and a robust PostgreSQL database integration for downstream analysis.
 
-## Features
-- **GPU Accelerated**: Executes primarily on the GPU to drastically reduce integration time compared to CPU equivalents.
-- **Velocity Verlet Integrator**: Provides stable and energy-conserving orbital integration over long periods.
-- **Salpeter Initial Mass Function (IMF)**: Natively samples realistic stellar masses on the GPU using Inverse Transform Sampling.
-- **Physical Time Conversion**: Internally translates N-body time scaling into Megayears (Myr) by assuming Length=1 Parsec and actual cluster masses (in $M_\odot$).
-- **Softened Gravity**: Uses a smoothing parameter to prevent numerical explosions during extremely close stellar encounters.
+## Implementations
 
-## Requirements & Environment
+### 1. Rust CPU-Based Integrators
+Highly optimized Rust implementations are provided for each dimensionality (e.g., `rust_nbody_1D`, `rust_nbody_3D`, `rust_nbody_100D`). These are compiled into executables and symlinked into this directory (e.g., `nbody-rust-1D`). 
 
-The script is intended to run inside the `astro_env` python environment. 
+### 2. PyTorch GPU-Based Integrators (ROCm)
+Python scripts utilizing PyTorch on the AMD ROCm backend (`nbody-hypercluster-rocm-*D.py`) to compute heavy $O(N^2)$ pairwise forces in a vectorized manner. 
+- Features Velocity Verlet Integration and Salpeter Initial Mass Function (IMF) sampling.
+- Designed to run efficiently on AMD GPUs inside the `astro_env` Python environment.
 
-### Dependencies:
-- `torch` (compiled with ROCm support)
-- `numpy`
+## Running the Simulations
 
-## Usage
+You can run batches of the Rust simulations using the provided bash scripts:
 
-First, enter the Distrobox development environment and activate the python environment:
+- **Batch 1 (1D, 2D, 3D):**
+  ```bash
+  ./run_simulations_batch1.sh
+  ```
+- **Batch 2 (4D, 5D, 6D):**
+  ```bash
+  ./run_simulations_batch2.sh
+  ```
+- **Batch 3 (25D, 50D, 100D):**
+  ```bash
+  ./run_simulations_batch3.sh
+  ```
+
+For the ROCm-based PyTorch simulations, execute the scripts directly via python:
 ```bash
-distrobox enter dev-env
-conda activate astro_env  # or source path/to/astro_env/bin/activate if using venv
+conda activate astro_env
+python nbody-hypercluster-rocm-3D.py
 ```
 
-Then, simply execute the python script:
-```bash
-python nbody-rocm.py
-```
+## Database Integration (PostgreSQL)
 
-The terminal will output the progress every 1,000 steps, indicating the current step and the total elapsed physical time (in Myr). Once complete, the final simulation arrays (positions, velocities, and masses) are returned to the CPU and are ready for downstream analysis or plotting.
+The simulations heavily utilize a local PostgreSQL database to store cluster states, trajectory data, and snapshots.
+
+- **Database Name**: `hypercluster`
+- **Default User**: `stephane`
+- **Host**: `localhost`
+
+### Data Ingestion
+Both Rust and Python simulations log outputs to the database. The tables store coordinate spaces, velocities, dimensions, and integration steps natively. 
+
+## Analysis Tools
+
+The `Analysis/` subdirectory contains Python and Julia scripts to query the `hypercluster` database and produce physical plots. 
+
+**Examples of Analysis scripts:**
+- `plot_radial_distance_time_series_from_db.py`: Plots time series of Lagrangian radii/radial distances.
+- `plot_virial_evolution_from_db.py` / `.jl`: Tracks the virial ratio over the simulation.
+- `plot_radial_density_from_db.py`: Calculates and plots projected/radial density profiles.
+- `plot_radial_mass_function_from_db.py`: Examines the evolution of mass functions dynamically.
+
+These scripts usually accept arguments like `--dim` for filtering spatial dimensions and standard PostgreSQL connection flags (`--dbname`, `--user`, `--password`, `--host`).
