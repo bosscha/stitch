@@ -9,7 +9,7 @@
 \title{
   \includegraphics[width=0.4\textwidth]{logo.png} \\
   \vspace{1cm}
-  \textbf{S.T.I.T.C.H.: Simulating The Interactions of Thousands of Clusters in Hyperspace}
+  \textbf{N.E.X.U.S.: N-dimensional Engine for eXploring Universe Simulations}
 }
 \author{
   Stéphane \\
@@ -22,7 +22,7 @@
 \maketitle
 
 \begin{abstract}
-We present S.T.I.T.C.H., a novel hyper-dimensional $N$-body integration framework designed to simulate massive stellar clusters in spaces ranging from 1D to 100D. The primary motivation of this project is to study gravitational objects in high-dimensional space, providing deep theoretical insights into how spatial dimensionality fundamentally governs the formation, stability, and structural evolution of these celestial bodies. By mathematically generalizing Gauss's Law to higher-dimensional topologies, we preserve strict physical realism across arbitrary coordinate limits. Our integrations leverage high-performance Vulkan compute shaders (WGPU via Rust) and tensor-accelerated architectures (ROCm via PyTorch) to compute dense $O(N^2)$ pairwise forces, eliminating traditional performance bottlenecks. Furthermore, we investigate collisional dynamics by injecting hyper-massive rogue objects into perfectly virialized Salpeter-mass clusters, validating our integration stability in localized hyper-spatial disturbances. All phase spaces are durably logged to a PostgreSQL database for comprehensive topological analysis.
+We present N.E.X.U.S., a novel hyper-dimensional $N$-body integration framework designed to simulate massive stellar clusters in spaces ranging from 1D to 100D. The primary motivation of this project is to study gravitational objects in high-dimensional space, providing deep theoretical insights into how spatial dimensionality fundamentally governs the formation, stability, and structural evolution of these celestial bodies. By mathematically generalizing Gauss's Law to higher-dimensional topologies, we preserve strict physical realism across arbitrary coordinate limits. Our integrations leverage high-performance Vulkan compute shaders (WGPU via Rust) and tensor-accelerated architectures (ROCm via PyTorch) to compute dense $O(N^2)$ pairwise forces, eliminating traditional performance bottlenecks. Furthermore, we investigate collisional dynamics by injecting hyper-massive rogue objects into perfectly virialized Salpeter-mass clusters, validating our integration stability in localized hyper-spatial disturbances. All phase spaces are durably logged to a PostgreSQL database for comprehensive topological analysis.
 \end{abstract}
 
 \section{Introduction to $N$-Dimensional Gravity}
@@ -33,7 +33,7 @@ To simulate cluster interactions in $N$-dimensional space, this mathematical con
     F(R) \propto \frac{1}{R^{N-1}}
 \end{equation}
 
-Consequently, the physical behaviors in S.T.I.T.C.H. vary drastically based on dimensionality:
+Consequently, the physical behaviors in N.E.X.U.S. vary drastically based on dimensionality:
 \begin{itemize}
     \item \textbf{1D:} Force is constant ($F \propto 1/R^0$), resulting in unbounded linear oscillatory mechanics.
     \item \textbf{2D:} Force decays logarithmically with potential ($F \propto 1/R^1$), modelling idealized planar accretion discs.
@@ -43,7 +43,7 @@ Consequently, the physical behaviors in S.T.I.T.C.H. vary drastically based on d
 
 \section{Numerical Implementation \& Architecture}
 
-S.T.I.T.C.H. is powered by a dual-engine architecture targeting both generalized computing and AI-tensor acceleration.
+N.E.X.U.S. is powered by a dual-engine architecture targeting both generalized computing and AI-tensor acceleration.
 
 \subsection{GPU Compute Engine (Rust/WGPU)}
 For stable, long-running integrations, we utilize Rust combined with the WGPU ecosystem targeting the Vulkan backend. The equations of motion are solved utilizing the Velocity Verlet symplectic integrator, defined as:
@@ -58,7 +58,7 @@ To prevent catastrophic computational singularities (division by zero during nea
 \end{equation}
 
 \subsection{TDR Mitigation Strategy}
-Due to the massive $O(N^2)$ workload required for gravity passes, traditional bulk GPU submissions trigger Driver Timeout Detection and Recovery (TDR) crashes. S.T.I.T.C.H. successfully circumvents this via granular, per-pass command submissions inside the compute loop, yielding stable execution for millions of time-steps.
+Due to the massive $O(N^2)$ workload required for gravity passes, traditional bulk GPU submissions trigger Driver Timeout Detection and Recovery (TDR) crashes. N.E.X.U.S. successfully circumvents this via granular, per-pass command submissions inside the compute loop, yielding stable execution for millions of time-steps.
 
 \section{Cluster Initialization \& Collisional Dynamics}
 
@@ -67,18 +67,18 @@ The simulations spawn $10,000$ particles following a King Model spatial distribu
 \begin{equation}
     2T + V = 0 \implies Q = \frac{T}{|V|} = 0.5
 \end{equation}
-Where $T$ is the total kinetic energy and $V$ is the potential energy. S.T.I.T.C.H. iteratively scales the generated velocity vectors to achieve exactly $Q=0.5$.
+Where $T$ is the total kinetic energy and $V$ is the potential energy. N.E.X.U.S. iteratively scales the generated velocity vectors to achieve exactly $Q=0.5$.
 
 \subsection{Rogue Object Injections}
 To test the resilience of our perfectly virialized clusters, we introduced collisional simulation forks (\texttt{rust\_nbody\_2D\_incoming} and \texttt{3D\_incoming}). A rogue supermassive object of $300\, M_{\odot}$ is injected at a distance of $200$\,pc, traveling directly toward the cluster core at $200$\,km/s. Initial accelerations are dynamically recalculated to subject the cluster to the rogue object's gravitational pull at $t=0$, providing an excellent environment to study cluster disruption, ejection events, and evaporation rates.
 
 \section{Analytics \& Database Framework}
-A core feature of the S.T.I.T.C.H. framework is its native PostgreSQL integration. As opposed to writing unwieldy binary files, the engines commit all physical parameters—snapshot IDs, physical time (Myr), positions, and velocities—directly into the local \texttt{hypercluster} relational database. This allows our Julia and Python analysis suites to effortlessly query phase spaces, track escaping stars across the $R_{80}$ boundary, and model dynamic surface densities via SQL queries.
+A core feature of the N.E.X.U.S. framework is its native PostgreSQL integration. As opposed to writing unwieldy binary files, the engines commit all physical parameters—snapshot IDs, physical time (Myr), positions, and velocities—directly into the local \texttt{hypercluster} relational database. This allows our Julia and Python analysis suites to effortlessly query phase spaces, track escaping stars across the $R_{80}$ boundary, and model dynamic surface densities via SQL queries.
 
 \section{Conclusion}
-S.T.I.T.C.H. bridges the gap between hyper-dimensional mathematics and high-performance GPU computing. By coupling robust symplectic integrators with strict topological physical laws, the MCfA has created a sandbox capable of unravelling the deepest mysteries of $N$-body systems across arbitrary spatial manifolds.
+N.E.X.U.S. bridges the gap between hyper-dimensional mathematics and high-performance GPU computing. By coupling robust symplectic integrators with strict topological physical laws, the MCfA has created a sandbox capable of unravelling the deepest mysteries of $N$-body systems across arbitrary spatial manifolds.
 
 \section*{Acknowledgments}
-The numerical framework, architectural code generation, and mathematical typesetting of the S.T.I.T.C.H. project were heavily assisted by Google Gemini.
+The numerical framework, architectural code generation, and mathematical typesetting of the N.E.X.U.S. project were heavily assisted by Google Gemini.
 
 \end{document}

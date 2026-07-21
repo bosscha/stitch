@@ -91,8 +91,8 @@ const Hero = () => {
         <div className="hero-bg" style={{ backgroundImage: "url('/assets/hero_bg.png')" }}></div>
         <div className="hero-overlay"></div>
         <div className="hero-content">
-          <h1 className="glitch" data-text="S.T.I.T.C.H.">S.T.I.T.C.H.</h1>
-          <p className="subtitle">Simulating The Interactions of Thousands of Clusters in Hyperspace.</p>
+          <h1 className="glitch" data-text="N.E.X.U.S.">N.E.X.U.S.</h1>
+          <p className="subtitle">N-dimensional Engine for eXploring Universe Simulations.</p>
           <div className="scroll-indicator">
             <span>Explore the Math</span>
             <div className="mouse"></div>
