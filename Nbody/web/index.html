@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAIA Hypercluster N-Body Simulations</title>
+    <meta name="description" content="Exploring N-dimensional gravitational dynamics, hypercluster simulations, and incoming object collisions.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="starfield"></canvas>
+    
+    <header class="hero">
+        <div class="hero-bg" style="background-image: url('assets/hero_bg.png');"></div>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="glitch" data-text="GAIA Hypercluster">GAIA Hypercluster</h1>
+            <p class="subtitle">Exploring gravitational dynamics from 1D to 100D spaces.</p>
+            <div class="scroll-indicator">
+                <span>Explore the Math</span>
+                <div class="mouse"></div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="physics" class="glass-section">
+            <h2>The Physics of N-Dimensions</h2>
+            <div class="card-grid">
+                <div class="card">
+                    <h3>Generalized Gauss's Law</h3>
+                    <p>In standard 3D space, gravitational flux spreads across the surface of a sphere (<code class="inline-math">4&pi;R²</code>), resulting in the famous <code class="inline-math">1/R²</code> inverse-square law.</p>
+                    <p>In this project, we generalize Gauss's Law to <code class="inline-math">N</code>-dimensional space, where the surface area of a hypersphere scales proportionally to <code class="inline-math">R<sup>N-1</sup></code>. Consequently, our N-Body GPU shaders dynamically scale gravitational force mathematically as:</p>
+                    <div class="equation">
+                        <span class="math">F &propto; 1 / R<sup>N-1</sup></span>
+                    </div>
+                </div>
+                <div class="card feature-list">
+                    <h3>Dimensional Behaviors</h3>
+                    <ul>
+                        <li><span class="dim-badge">1D</span> <strong>Constant Force:</strong> <code class="inline-math">1/R&deg;</code> - Gravity does not decay with distance.</li>
+                        <li><span class="dim-badge">2D</span> <strong>Inverse Law:</strong> <code class="inline-math">1/R&sup1;</code> - Force scales logarithmically with potential.</li>
+                        <li><span class="dim-badge">3D</span> <strong>Inverse-Square:</strong> <code class="inline-math">1/R&sup2;</code> - Standard Newtonian gravity.</li>
+                        <li><span class="dim-badge">4D+</span> <strong>Hyperspatial:</strong> <code class="inline-math">1/R&sup3;</code> and beyond - Extreme short-range decay.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="collisions" class="glass-section">
+            <h2>Incoming Object Dynamics</h2>
+            <p class="section-desc">Testing cluster stability against rogue hyper-massive objects.</p>
+            <div class="split-layout">
+                <div class="text-content">
+                    <p>We've implemented specialized simulation forks (<code>rust_nbody_2D_incoming</code> and <code>rust_nbody_3D_incoming</code>) to study the disruption of a perfectly virialized Salpeter-mass cluster.</p>
+                    <ul class="stats-list">
+                        <li><strong>Cluster Stars:</strong> 10,000 (King Model, Q=0.5)</li>
+                        <li><strong>Rogue Mass:</strong> 300 M<sub>&odot;</sub></li>
+                        <li><strong>Origin Point:</strong> 200 parsecs</li>
+                        <li><strong>Impact Velocity:</strong> 200 km/s</li>
+                    </ul>
+                </div>
+                <div class="visual-placeholder">
+                    <div class="orbit-ring"></div>
+                    <div class="cluster"></div>
+                    <div class="rogue-star"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="architecture" class="glass-section">
+            <h2>Technical Architecture</h2>
+            <div class="card-grid three-col">
+                <div class="card tech-card">
+                    <div class="icon">⚙️</div>
+                    <h3>Rust WGPU Engine</h3>
+                    <p>High-performance compute shaders executing on the Vulkan backend. Implements Velocity Verlet integration with batch command submission to prevent TDR timeouts during intense <code class="inline-math">O(N&sup2;)</code> gravity passes.</p>
+                </div>
+                <div class="card tech-card">
+                    <div class="icon">🔥</div>
+                    <h3>PyTorch ROCm</h3>
+                    <p>Vectorized Python implementations designed for AMD GPU tensor acceleration. Rapid prototyping for higher dimensions (up to 100D) using the <code>astro_env</code> Anaconda environment.</p>
+                </div>
+                <div class="card tech-card">
+                    <div class="icon">🐘</div>
+                    <h3>PostgreSQL Analytics</h3>
+                    <p>All snapshot geometries, phase spaces, and virial parameters are logged to a local PostgreSQL <code>hypercluster</code> database, easily queried via Julia and Python plotting suites.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 GAIA Hypercluster Research | Simulated locally via Antigravity</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

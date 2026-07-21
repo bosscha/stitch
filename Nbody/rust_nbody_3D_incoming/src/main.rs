@@ -6,8 +6,9 @@ use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 use std::borrow::Cow;
 
-const N_STARS: usize = 10000;
-const DIM: usize = 1;
+const N_STARS: usize = 10001;
+const CLUSTER_STARS: usize = 10000;
+const DIM: usize = 3;
 const G: f32 = 1.0;
 const DT: f32 = 0.0001;
 const STEPS: usize = 5000000;
@@ -59,14 +60,14 @@ fn sample_king_nd(n_stars: usize, r_c: f32, r_t: f32) -> Vec<Vector3> {
         if p_cand < p_eval {
             let v: [f32; 3] = [
                 rng.sample(StandardNormal),
-                0.0,
-                0.0
+                rng.sample(StandardNormal),
+                rng.sample(StandardNormal)
             ];
-            let v_norm = v[0].abs();
+            let v_norm = (v[0]*v[0] + v[1]*v[1] + v[2]*v[2]).sqrt();
             pos.push([
-                if v_norm > 0.0 { v[0] / v_norm * r_cand } else { 0.0 },
-                0.0,
-                0.0,
+                v[0] / v_norm * r_cand,
+                v[1] / v_norm * r_cand,
+                v[2] / v_norm * r_cand,
             ]);
         }
     }
@@ -126,45 +127,45 @@ fn compute_mass_slope(masses: &[f32], m_min: f32, m_max: f32, num_bins: usize) -
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting Salpeter N-body simulation with wgpu GPU Acceleration...");
     
-    let mut pos = sample_king_nd(N_STARS, 1.0, 10.0);
+    let mut pos = sample_king_nd(CLUSTER_STARS, 1.0, 10.0);
     
     let mut rng = rand::thread_rng();
-    let mut vel: Vec<Vector3> = (0..N_STARS).map(|_| {
+    let mut vel: Vec<Vector3> = (0..CLUSTER_STARS).map(|_| {
         let v: [f32; 3] = [
             rng.sample(StandardNormal),
-            0.0,
-            0.0
+            rng.sample(StandardNormal),
+            rng.sample(StandardNormal)
         ];
-        [v[0] * 0.5, 0.0, 0.0]
+        [v[0] * 0.5, v[1] * 0.5, v[2] * 0.5]
     }).collect();
 
     // Generate Salpeter IMF
     let pow_idx = 1.0 - ALPHA;
     let m_diff = M_MAX.powf(pow_idx) - M_MIN.powf(pow_idx);
     
-    let mut mass = vec![0.0f32; N_STARS];
+    let mut mass = vec![0.0f32; CLUSTER_STARS];
     let mut total_mass = 0.0f32;
     
-    for i in 0..N_STARS {
+    for i in 0..CLUSTER_STARS {
         let u: f32 = rng.gen();
         mass[i] = (u * m_diff + M_MIN.powf(pow_idx)).powf(1.0 / pow_idx);
         total_mass += mass[i];
     }
     
-    for i in 0..N_STARS {
+    for i in 0..CLUSTER_STARS {
         mass[i] /= total_mass;
     }
     
     // Shift velocities to stop CoM drift
     let mut vel_cm = [0.0f32; 3];
-    for i in 0..N_STARS {
+    for i in 0..CLUSTER_STARS {
         vel_cm[0] += vel[i][0] * mass[i];
         vel_cm[1] += vel[i][1] * mass[i];
         vel_cm[2] += vel[i][2] * mass[i];
     }
     
     let mut t_energy = 0.0f32;
-    for i in 0..N_STARS {
+    for i in 0..CLUSTER_STARS {
         vel[i][0] -= vel_cm[0];
         vel[i][1] -= vel_cm[1];
         vel[i][2] -= vel_cm[2];
@@ -173,30 +174,19 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     // Compute potential energy
     let mut v_energy = 0.0f32;
-    let mut initial_acc = vec![[0.0f32; 3]; N_STARS];
-    for i in 0..N_STARS {
-        for j in 0..N_STARS {
-            if i == j { continue; }
+    for i in 0..CLUSTER_STARS {
+        for j in (i + 1)..CLUSTER_STARS {
             let dx = pos[j][0] - pos[i][0];
             let dy = pos[j][1] - pos[i][1];
             let dz = pos[j][2] - pos[i][2];
             let dist_sq = dx*dx + dy*dy + dz*dz;
-            let inv_dist_sq = dist_sq + SOFTENING * SOFTENING;
-            let inv_dist = 1.0 / inv_dist_sq.sqrt();
-            
-            if j > i {
-                v_energy += -G * mass[i] * mass[j] * inv_dist;
-            }
-            
-            let force_mag = G * mass[j] * inv_dist;
-            initial_acc[i][0] += force_mag * dx;
-            initial_acc[i][1] += force_mag * dy;
-            initial_acc[i][2] += force_mag * dz;
+            let inv_dist = 1.0 / (dist_sq + SOFTENING * SOFTENING).sqrt();
+            v_energy += -G * mass[i] * mass[j] * inv_dist;
         }
     }
     
     let f_scale = (0.5 * v_energy.abs() / t_energy).sqrt();
-    for i in 0..N_STARS {
+    for i in 0..CLUSTER_STARS {
         vel[i][0] *= f_scale;
         vel[i][1] *= f_scale;
         vel[i][2] *= f_scale;
@@ -222,6 +212,30 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     println!("➔ Lightest Star relative mass: {:.5}", min_mass);
     println!("➔ Time Conversion: 1 N-body time unit = {:.4} Myr", time_to_myr);
 
+    // Inject incoming object
+    let incoming_mass = 300.0 / total_mass;
+    let v_sim = 204.54 * time_to_myr;
+    mass.push(incoming_mass);
+    pos.push([200.0, 0.0, 0.0]);
+    vel.push([-v_sim, 0.0, 0.0]);
+
+    // Compute initial_acc for all N_STARS
+    let mut initial_acc = vec![[0.0f32; 3]; N_STARS];
+    for i in 0..N_STARS {
+        for j in 0..N_STARS {
+            if i == j { continue; }
+            let dx = pos[j][0] - pos[i][0];
+            let dy = pos[j][1] - pos[i][1];
+            let dz = pos[j][2] - pos[i][2];
+            let dist_sq = dx*dx + dy*dy + dz*dz;
+            let inv_dist_cube = 1.0 / (dist_sq + SOFTENING * SOFTENING).powf(1.5);
+            let force_mag = G * mass[j] * inv_dist_cube;
+            initial_acc[i][0] += force_mag * dx;
+            initial_acc[i][1] += force_mag * dy;
+            initial_acc[i][2] += force_mag * dz;
+        }
+    }
+
     let mut db_client = Client::connect("host=localhost user=stephane password=tallis dbname=hypercluster", NoTls).ok();
     
     if let Some(ref mut client) = db_client {
@@ -239,15 +253,15 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         ", &[]);
     }
 
-    // Calculate initial 80% radius
+    // Calculate initial 80% radius (for cluster only)
     let mut center_initial = [0.0f32; 3];
-    for p in &pos {
-        center_initial[0] += p[0] / N_STARS as f32;
-        center_initial[1] += p[1] / N_STARS as f32;
-        center_initial[2] += p[2] / N_STARS as f32;
+    for i in 0..CLUSTER_STARS {
+        center_initial[0] += pos[i][0] / CLUSTER_STARS as f32;
+        center_initial[1] += pos[i][1] / CLUSTER_STARS as f32;
+        center_initial[2] += pos[i][2] / CLUSTER_STARS as f32;
     }
     
-    let mut dist_initial: Vec<f32> = pos.iter().map(|p| {
+    let mut dist_initial: Vec<f32> = pos[0..CLUSTER_STARS].iter().map(|p| {
         let dx = p[0] - center_initial[0];
         let dy = p[1] - center_initial[1];
         let dz = p[2] - center_initial[2];
@@ -255,7 +269,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }).collect();
     
     dist_initial.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
-    let r80_initial = dist_initial[(0.8 * N_STARS as f32) as usize];
+    let r80_initial = dist_initial[(0.8 * CLUSTER_STARS as f32) as usize];
     println!("➔ Initial 80% radius (R80): {:.4}", r80_initial);
 
     // Initialize wgpu
@@ -429,10 +443,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             
             let step = (batch + 1) * track_interval;
             let mut center = [0.0f32; 3];
-            for p in result {
-                center[0] += p.pos_mass[0] / N_STARS as f32;
-                center[1] += p.pos_mass[1] / N_STARS as f32;
-                center[2] += p.pos_mass[2] / N_STARS as f32;
+            for i in 0..CLUSTER_STARS {
+                center[0] += result[i].pos_mass[0] / CLUSTER_STARS as f32;
+                center[1] += result[i].pos_mass[1] / CLUSTER_STARS as f32;
+                center[2] += result[i].pos_mass[2] / CLUSTER_STARS as f32;
             }
             
             let mut escaped = 0;

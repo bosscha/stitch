@@ -409,9 +409,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let workgroup_count = (N_STARS as u32 + 255) / 256;
 
     for batch in 0..num_batches {
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        
         for _ in 0..track_interval {
+            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
             {
                 let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor { label: None, timestamp_writes: None });
                 cpass.set_pipeline(&update_pos_pipeline);
@@ -424,7 +423,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 cpass.set_bind_group(0, &bind_group, &[]);
                 cpass.dispatch_workgroups(workgroup_count, 1, 1);
             }
+            queue.submit(Some(encoder.finish()));
         }
+        
+        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         
         encoder.copy_buffer_to_buffer(&particle_buffer, 0, &staging_buffer, 0, (particles.len() * std::mem::size_of::<Particle>()) as u64);
         queue.submit(Some(encoder.finish()));
