@@ -6,12 +6,12 @@ use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 use std::borrow::Cow;
 
-const N_STARS: usize = 10000;
+const N_STARS: usize = 5000;
 const DIM: usize = 1;
 const G: f32 = 1.0;
 const DT: f32 = 0.0001;
-const STEPS: usize = 5000000;
-const SOFTENING: f32 = 0.01;
+const STEPS: usize = 1000000;
+const SOFTENING: f32 = 0.001;
 
 const M_MIN: f32 = 0.1;
 const M_MAX: f32 = 50.0;
@@ -45,7 +45,7 @@ fn sample_king_nd(n_stars: usize, r_c: f32, r_t: f32) -> Vec<Vector3> {
         let num_points = 1000;
         for i in 0..num_points {
             let r = r_t * (i as f32) / (num_points as f32);
-            let p = r.powi((DIM - 1) as i32) * (1.0 / (1.0 + (r/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
+            let p = (r / r_t).powi((DIM - 1) as i32) * (1.0 / (1.0 + (r/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
             if p > max_p { max_p = p; }
         }
         max_p * 1.1
@@ -54,7 +54,7 @@ fn sample_king_nd(n_stars: usize, r_c: f32, r_t: f32) -> Vec<Vector3> {
     while pos.len() < n_stars {
         let r_cand: f32 = rng.gen_range(0.0..r_t);
         let p_cand: f32 = rng.gen_range(0.0..p_max);
-        let p_eval = r_cand.powi((DIM - 1) as i32) * (1.0 / (1.0 + (r_cand/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
+        let p_eval = (r_cand / r_t).powi((DIM - 1) as i32) * (1.0 / (1.0 + (r_cand/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
         
         if p_cand < p_eval {
             let v: [f32; 3] = [

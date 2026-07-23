@@ -90,9 +90,9 @@ function parse_commandline()
             help = "Database name"
             default = "hypercluster"
         "--softening"
-            help = "Softening parameter used in simulation (default: 0.01)"
+            help = "Softening parameter used in simulation (default: 0.001)"
             arg_type = Float64
-            default = 0.01
+            default = 0.001
         "--g-constant"
             help = "Gravitational constant G (default: 1.0)"
             arg_type = Float64

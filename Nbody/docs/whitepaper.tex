@@ -7,8 +7,8 @@
 \geometry{margin=1in}
 
 \title{
-  \includegraphics[width=0.4\textwidth]{logo.png} \\
-  \vspace{1cm}
+  \includegraphics[width=0.30\textwidth]{logo.png} \\
+  \vspace{0.5cm}
   \textbf{N.E.X.U.S.: N-dimensional Engine for eXploring Universe Simulations}
 }
 \author{
@@ -63,7 +63,7 @@ Due to the massive $O(N^2)$ workload required for gravity passes, traditional bu
 \section{Cluster Initialization \& Collisional Dynamics}
 
 \subsection{Virial Equilibrium}
-The simulations spawn $10,000$ particles following a King Model spatial distribution, with masses sampled from a Salpeter Initial Mass Function (IMF). Before integration begins, the cluster undergoes a scaling sequence to guarantee strict virial equilibrium. According to the Virial Theorem, a stable self-gravitating system must satisfy:
+The simulations spawn $10,000$ particles following a King Model spatial distribution, with masses sampled from a Salpeter Initial Mass Function (IMF). A typical simulation run spans approximately $150$\,Myr, corresponding to the median age for real open clusters in our Galaxy. Before integration begins, the cluster undergoes a scaling sequence to guarantee strict virial equilibrium. According to the Virial Theorem, a stable self-gravitating system must satisfy:
 \begin{equation}
     2T + V = 0 \implies Q = \frac{T}{|V|} = 0.5
 \end{equation}

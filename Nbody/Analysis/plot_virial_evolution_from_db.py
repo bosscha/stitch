@@ -70,7 +70,7 @@ def main():
     parser.add_argument("--user", type=str, default="stephane", help="Database user")
     parser.add_argument("--password", type=str, default="tallis", help="Database password")
     parser.add_argument("--dbname", type=str, default="hypercluster", help="Database name")
-    parser.add_argument("--softening", type=float, default=0.01, help="Softening parameter used in simulation (default: 0.01)")
+    parser.add_argument("--softening", type=float, default=0.001, help="Softening parameter used in simulation (default: 0.01)")
     parser.add_argument("--g-constant", type=float, default=1.0, help="Gravitational constant G (default: 1.0)")
     parser.add_argument("--max-points", type=int, default=200, help="Maximum number of snapshots to analyze to keep runtimes fast (default: 200)")
     args = parser.parse_args()
