@@ -5,15 +5,14 @@ use postgres::{Client, NoTls};
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 use std::borrow::Cow;
-use std::io::Write;
 
-const N_STARS: usize = 5000;
+const N_STARS: usize = 10000;
 const DIM: usize = 6;
 const MAX_DIM: usize = 8;
 const G: f32 = 1.0;
-const DT: f32 = 0.0001;
-const STEPS: usize = 1000000;
-const SOFTENING: f32 = 0.001;
+const DT: f32 = 0.00001;
+const STEPS: usize = 50000000;
+const SOFTENING: f32 = 0.01;
 
 const M_MIN: f32 = 0.1;
 const M_MAX: f32 = 50.0;
@@ -52,7 +51,7 @@ fn sample_king_nd(n_stars: usize, r_c: f32, r_t: f32) -> Vec<VectorD> {
         let num_points = 1000;
         for i in 0..num_points {
             let r = r_t * (i as f32) / (num_points as f32);
-            let p = (r / r_t).powi((DIM - 1) as i32) * (1.0 / (1.0 + (r/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
+            let p = r.powi((DIM - 1) as i32) * (1.0 / (1.0 + (r/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
             if p > max_p { max_p = p; }
         }
         max_p * 1.1
@@ -61,7 +60,7 @@ fn sample_king_nd(n_stars: usize, r_c: f32, r_t: f32) -> Vec<VectorD> {
     while pos.len() < n_stars {
         let r_cand: f32 = rng.gen_range(0.0..r_t);
         let p_cand: f32 = rng.gen_range(0.0..p_max);
-        let p_eval = (r_cand / r_t).powi((DIM - 1) as i32) * (1.0 / (1.0 + (r_cand/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
+        let p_eval = r_cand.powi((DIM - 1) as i32) * (1.0 / (1.0 + (r_cand/r_c).powi(2)).sqrt() - 1.0 / (1.0 + (r_t/r_c).powi(2)).sqrt()).powi(2);
         
         if p_cand < p_eval {
             let mut v = [0.0f32; MAX_DIM];
@@ -422,28 +421,23 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let time_myr = (step as f32) * DT * time_to_myr;
             time_steps_list.push(time_myr);
             
-            if step % 5000 == 0 {
-                if let Some(ref mut client) = db_client {
-                    let mut writer = client.copy_in("COPY star_snapshots (snapshot_id, time_myr, star_id, mass, dim_space, position, velocity) FROM STDIN")?;
-                    for i in 0..N_STARS {
-                        let mut pos_str = String::from("{");
-                        let mut vel_str = String::from("{");
-                        for k in 0..DIM {
-                            if k > 0 {
-                                pos_str.push(',');
-                                vel_str.push(',');
-                            }
-                            pos_str.push_str(&result[i].pos[k].to_string());
-                            vel_str.push_str(&result[i].vel[k].to_string());
-                        }
-                        pos_str.push('}');
-                        vel_str.push('}');
-                        
-                        let line = format!("{}\t{}\t{}\t{}\t{}\t{}\t{}\n", step, time_myr, i, mass_phys[i], DIM, pos_str, vel_str);
-                        writer.write_all(line.as_bytes())?;
+            if let Some(ref mut client) = db_client {
+                let mut trans = client.transaction()?;
+                for i in 0..N_STARS {
+                    let mut pos_vec = Vec::new();
+                    let mut vel_vec = Vec::new();
+                    for k in 0..DIM {
+                        pos_vec.push(result[i].pos[k] as f64);
+                        vel_vec.push(result[i].vel[k] as f64);
                     }
-                    writer.finish()?;
+                    
+                    let _ = trans.execute("
+                        INSERT INTO star_snapshots 
+                        (snapshot_id, time_myr, star_id, mass, dim_space, position, velocity) 
+                        VALUES ($1, $2, $3, $4, $5, $6, $7)
+                    ", &[&(step as i32), &(time_myr as f64), &(i as i32), &(mass_phys[i] as f64), &(DIM as i32), &pos_vec, &vel_vec]);
                 }
+                trans.commit()?;
             }
             
             if step % 1000 == 0 {
