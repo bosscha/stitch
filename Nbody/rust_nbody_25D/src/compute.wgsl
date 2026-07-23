@@ -72,7 +72,7 @@ fn update_vel(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let inv_dist = sqrt(inv_dist_sq);
         
         // General formula for N-dimensional gravity: force_mag = G * m * inv_dist^(N)
-        let force_mag = params.g_const * mass * pow(inv_dist, f32(dim));
+        let force_mag = params.g_const * mass * min(pow(inv_dist, f32(dim)), 1.0e15);
         
         for (var k: u32 = 0u; k < dim; k = k + 1u) {
             new_acc[k] += diffs[k] * force_mag;

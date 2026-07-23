@@ -149,7 +149,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 v_energy += -G * mass[i] * mass[j] * inv_dist;
             }
             
-            let force_mag = G * mass[j] * inv_dist.powf(DIM as f32);
+            let force_mag = G * mass[j] * inv_dist.powf(DIM as f32).min(1.0e15_f32);
             for k in 0..DIM {
                 initial_acc[i][k] += force_mag * diffs[k];
             }
